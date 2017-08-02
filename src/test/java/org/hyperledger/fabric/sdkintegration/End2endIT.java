@@ -213,6 +213,7 @@ public class End2endIT {
             String res_3 = "not3";
             String res_4 = "not4";
             Log logger = LogFactory.getLog(End2endIT.class);
+            logger.debug(String.format("Test start!"));
             res_1 = this.query("a");
             res_2 = this.query("b");
             logger.debug(String.format("res_1:%s , res_2:%s" , res_1 , res_2));
