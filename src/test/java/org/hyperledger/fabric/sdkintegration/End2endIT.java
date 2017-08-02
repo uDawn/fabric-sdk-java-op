@@ -79,7 +79,7 @@ public class End2endIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
     private static final String ADMIN_NAME = "admin";
-    private static final String USER_1_NAME = "dsa";
+    private static final String USER_1_NAME = "d8d";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String CHAIN_CODE_NAME = "mycc_yl";
@@ -172,7 +172,7 @@ public class End2endIT {
                 if (!user.isRegistered()) {  // users need to be registered AND enrolled
                     RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
                     user.setEnrollmentSecret(ca.register(rr, admin));
-                    File secret = new File("src/test/java/secrete/secret.txt");
+                    File secret = new File("src/test/java/secret.txt");
                     FileOutputStream write_secret = new FileOutputStream(secret,false);
                     write_secret.write(ca.register(rr, admin).getBytes());
                 }
