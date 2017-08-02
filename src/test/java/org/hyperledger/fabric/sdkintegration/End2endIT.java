@@ -79,7 +79,7 @@ public class End2endIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
     private static final String ADMIN_NAME = "admin";
-    private static final String USER_1_NAME = "user2";
+    private static final String USER_1_NAME = "dsa";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String CHAIN_CODE_NAME = "mycc_yl";
