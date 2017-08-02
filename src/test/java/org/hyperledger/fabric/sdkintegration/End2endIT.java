@@ -196,6 +196,7 @@ public class End2endIT {
 
                 sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
 
+                break;
             }
 
             ////////////////////////////
