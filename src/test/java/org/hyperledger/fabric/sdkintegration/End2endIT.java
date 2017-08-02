@@ -169,14 +169,14 @@ public class End2endIT {
                 sampleOrg.setAdmin(admin); // The admin of this org --
 
                 SampleUser user = sampleStore.getMember(USER_1_NAME, sampleOrg.getName());
-                if (!user.isRegistered()) {  // users need to be registered AND enrolled
-                    RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
-                    String tmp = ca.register(rr, admin);
-                    user.setEnrollmentSecret(tmp);
-                    File secret = new File("src/test/java/secret.txt");
-                    FileOutputStream write_secret = new FileOutputStream(secret,false);
-                    write_secret.write(tmp.getBytes());
-                }
+                //if (!user.isRegistered()) {  // users need to be registered AND enrolled
+                    //RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
+                    //String tmp = ca.register(rr, admin);
+                    user.setEnrollmentSecret("cxpgYfXSGZdt");
+                    //File secret = new File("src/test/java/secret.txt");
+                    //FileOutputStream write_secret = new FileOutputStream(secret,false);
+                   // write_secret.write(tmp.getBytes());
+                //}
                 if (!user.isEnrolled()) {
                     user.setEnrollment(ca.enroll(user.getName(), user.getEnrollmentSecret()));
                     user.setMspId(mspid);
