@@ -203,7 +203,7 @@ public class End2endIT {
             ////////////////////////////
             //Construct and run the channels
             this.sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            this.myChannel = this.constructChannel(this.CHANNEL_NAME, this.client, this.sampleOrg);
+            this.myChannel = this.reconstructChannel(this.CHANNEL_NAME, this.client, this.sampleOrg);
             this.chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
                     .setVersion(CHAIN_CODE_VERSION)
                     .setPath(CHAIN_CODE_PATH).build();
