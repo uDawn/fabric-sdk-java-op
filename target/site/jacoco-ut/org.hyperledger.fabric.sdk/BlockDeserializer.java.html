@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BlockDeserializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">BlockDeserializer.java</span></div><h1>BlockDeserializer.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.common.Common.BlockData;
+
+class BlockDeserializer {
+    private final Block block;
+<span class="fc" id="L32">    private final Map&lt;Integer, WeakReference&lt;EnvelopeDeserializer&gt;&gt; envelopes = Collections.synchronizedMap(new WeakHashMap&lt;Integer, WeakReference&lt;EnvelopeDeserializer&gt;&gt;());</span>
+
+    public Block getBlock() {
+<span class="fc" id="L35">        return block;</span>
+    }
+
+<span class="fc" id="L38">    BlockDeserializer(Block block) {</span>
+<span class="fc" id="L39">        this.block = block;</span>
+<span class="fc" id="L40">    }</span>
+
+    ByteString getPreviousHash() {
+<span class="nc" id="L43">        block.getHeader().getDataHash();</span>
+
+<span class="nc" id="L45">        return block.getHeader().getPreviousHash();</span>
+    }
+
+    ByteString getDataHash() {
+<span class="nc" id="L49">        return block.getHeader().getDataHash();</span>
+
+    }
+
+    public long getNumber() {
+<span class="nc" id="L54">        return block.getHeader().getNumber();</span>
+    }
+
+    BlockData getData() {
+
+<span class="fc" id="L59">        return block.getData();</span>
+
+    }
+
+    EnvelopeDeserializer getData(int index) throws InvalidProtocolBufferException {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (index &gt;= getData().getDataCount()) {</span>
+<span class="nc" id="L65">            return null;</span>
+        }
+<span class="nc" id="L67">        WeakReference&lt;EnvelopeDeserializer&gt; envelopeWeakReference = envelopes.get(index);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (null != envelopeWeakReference) {</span>
+<span class="nc" id="L69">            EnvelopeDeserializer ret = envelopeWeakReference.get();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            if (null != ret) {</span>
+<span class="nc" id="L71">                return ret;</span>
+            }
+        }
+
+<span class="nc" id="L75">        EnvelopeDeserializer envelopeDeserializer = EnvelopeDeserializer.newInstance(getData().getData(index), getTransActionsMetaData()[index]);</span>
+
+<span class="nc" id="L77">        envelopes.put(index, new WeakReference&lt;&gt;(envelopeDeserializer));</span>
+
+<span class="nc" id="L79">        return envelopeDeserializer;</span>
+
+    }
+
+    byte[] getTransActionsMetaData() {
+
+<span class="fc" id="L85">        return block.getMetadata().getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE).toByteArray();</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

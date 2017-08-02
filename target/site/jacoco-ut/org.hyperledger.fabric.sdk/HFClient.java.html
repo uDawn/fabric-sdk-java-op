@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HFClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">HFClient.java</span></div><h1>HFClient.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.User.userContextCheck;
+
+public class HFClient {
+
+    private CryptoSuite cryptoSuite;
+
+    static {
+
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">        if (null == System.getProperty(&quot;org.hyperledger.fabric.sdk.logGRPC&quot;)) {</span>
+            // Turn this off by default!
+<span class="fc" id="L48">            Logger.getLogger(&quot;io.netty&quot;).setLevel(Level.OFF);</span>
+<span class="fc" id="L49">            Logger.getLogger(&quot;io.grpc&quot;).setLevel(Level.OFF);</span>
+
+        }
+    }
+
+<span class="fc" id="L54">    private final ExecutorService executorService = Executors.newCachedThreadPool(r -&gt; {</span>
+<span class="fc" id="L55">        Thread t = Executors.defaultThreadFactory().newThread(r);</span>
+<span class="fc" id="L56">        t.setDaemon(true);</span>
+<span class="fc" id="L57">        return t;</span>
+    });
+
+    ExecutorService getExecutorService() {
+<span class="fc" id="L61">        return executorService;</span>
+    }
+
+<span class="fc" id="L64">    private static final Log logger = LogFactory.getLog(HFClient.class);</span>
+
+<span class="fc" id="L66">    private final Map&lt;String, Channel&gt; channels = new HashMap&lt;&gt;();</span>
+
+    public User getUserContext() {
+<span class="fc" id="L69">        return userContext;</span>
+    }
+
+    private User userContext;
+
+<span class="fc" id="L74">    private HFClient() {</span>
+
+<span class="fc" id="L76">    }</span>
+
+    public CryptoSuite getCryptoSuite() {
+<span class="fc" id="L79">        return cryptoSuite;</span>
+    }
+
+    public void setCryptoSuite(CryptoSuite cryptoSuite) throws CryptoException, InvalidArgumentException {
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (this.cryptoSuite != null) {</span>
+<span class="nc" id="L84">            throw new InvalidArgumentException(&quot;CryptoSuite may only be set once.&quot;);</span>
+
+        }
+
+<span class="fc" id="L88">        cryptoSuite.init();</span>
+<span class="fc" id="L89">        this.cryptoSuite = cryptoSuite;</span>
+
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * createNewInstance create a new instance of the HFClient
+     *
+     * @return client
+     */
+    public static HFClient createNewInstance() {
+<span class="fc" id="L99">        return new HFClient();</span>
+    }
+
+    /**
+     * newChannel - already configured channel.
+     *
+     * @param name
+     * @return a new channel.
+     * @throws InvalidArgumentException
+     */
+
+    public Channel newChannel(String name) throws InvalidArgumentException {
+<span class="fc" id="L111">        clientCheck();</span>
+<span class="fc" id="L112">        logger.trace(&quot;Creating channel :&quot; + name);</span>
+<span class="fc" id="L113">        Channel newChannel = Channel.createNewInstance(name, this);</span>
+<span class="fc" id="L114">        channels.put(name, newChannel);</span>
+<span class="fc" id="L115">        return newChannel;</span>
+    }
+
+    /**
+     * Create a new channel
+     *
+     * @param name                           The channel's name
+     * @param orderer                        Orderer to create the channel with.
+     * @param channelConfiguration           Channel configuration data.
+     * @param channelConfigurationSignatures byte arrays containing ConfigSignature's proto serialized.
+     *                                       See {@link Channel#getChannelConfigurationSignature} on how to create
+     * @return a new channel.
+     * @throws TransactionException
+     * @throws InvalidArgumentException
+     */
+
+    public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
+
+<span class="nc" id="L133">        clientCheck();</span>
+<span class="nc" id="L134">        logger.trace(&quot;Creating channel :&quot; + name);</span>
+<span class="nc" id="L135">        Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);</span>
+<span class="nc" id="L136">        channels.put(name, newChannel);</span>
+<span class="nc" id="L137">        return newChannel;</span>
+    }
+
+    /**
+     * newPeer create a new peer
+     *
+     * @param name
+     * @param grpcURL    to the peer's location
+     * @param properties &lt;p&gt;
+     *                   Supported properties
+     *                   &lt;ul&gt;
+     *                   &lt;li&gt;pemFile - File location for x509 pem certificate for SSL.&lt;/li&gt;
+     *                   &lt;li&gt;trustServerCertificate - boolen(true/false) override CN to match pemFile certificate -- for development only.
+     *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
+     *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
+     *                   useful in development to get past default server hostname verification during
+     *                   TLS handshake, when the server host name does not match the certificate.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;hostnameOverride - Specify the certificates CN -- for development only.
+     *                   &lt;li&gt;sslProvider - Specify the SSL provider, openSSL or JDK.&lt;/li&gt;
+     *                   &lt;li&gt;negotiationType - Specify the type of negotiation, TLS or plainText.&lt;/li&gt;
+     *                   &lt;li&gt;If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
+     *                   hostname verifications during TLS handshake.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;
+     *                   grpc.NettyChannelBuilderOption.&amp;lt;methodName&amp;gt;  where methodName is any method on
+     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
+     *                   parameters need to be supplied in an array of Objects.
+     *                   &lt;/li&gt;
+     *                   &lt;/ul&gt;
+     * @return Peer
+     * @throws InvalidArgumentException
+     */
+
+    public Peer newPeer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+<span class="nc" id="L173">        clientCheck();</span>
+<span class="nc" id="L174">        return Peer.createNewInstance(name, grpcURL, properties);</span>
+    }
+
+    /**
+     * newPeer create a new peer
+     *
+     * @param name
+     * @param grpcURL to the peer's location
+     * @return Peer
+     * @throws InvalidArgumentException
+     */
+
+    public Peer newPeer(String name, String grpcURL) throws InvalidArgumentException {
+<span class="fc" id="L187">        clientCheck();</span>
+<span class="fc" id="L188">        return Peer.createNewInstance(name, grpcURL, null);</span>
+    }
+
+    /**
+     * getChannel by name
+     *
+     * @param name
+     * @return a channel
+     */
+
+    public Channel getChannel(String name) {
+<span class="nc" id="L199">        return channels.get(name);</span>
+    }
+
+    /**
+     * newInstallProposalRequest get new Install proposal request.
+     *
+     * @return InstallProposalRequest
+     */
+    public InstallProposalRequest newInstallProposalRequest() {
+<span class="nc" id="L208">        return new InstallProposalRequest(userContext);</span>
+    }
+
+    /**
+     * newInstantiationProposalRequest get new instantiation proposal request.
+     *
+     * @return InstantiateProposalRequest
+     */
+
+    public InstantiateProposalRequest newInstantiationProposalRequest() {
+<span class="fc" id="L218">        return new InstantiateProposalRequest(userContext);</span>
+    }
+
+    public UpgradeProposalRequest newUpgradeProposalRequest() {
+<span class="fc" id="L222">        return new UpgradeProposalRequest(userContext);</span>
+    }
+
+    /**
+     * newTransactionProposalRequest  get new transaction proposal request.
+     *
+     * @return TransactionProposalRequest
+     */
+
+    public TransactionProposalRequest newTransactionProposalRequest() {
+<span class="fc" id="L232">        return TransactionProposalRequest.newInstance(userContext);</span>
+    }
+
+    /**
+     * newQueryProposalRequest get new query proposal request.
+     *
+     * @return QueryByChaincodeRequest
+     */
+
+    public QueryByChaincodeRequest newQueryProposalRequest() {
+<span class="fc" id="L242">        return QueryByChaincodeRequest.newInstance(userContext);</span>
+    }
+
+    /**
+     * Set the User context for this client.
+     *
+     * @param userContext
+     * @throws InvalidArgumentException
+     */
+
+    public void setUserContext(User userContext) throws InvalidArgumentException {
+
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">        if (null == cryptoSuite) {</span>
+<span class="nc" id="L255">            throw new InvalidArgumentException(&quot;No cryptoSuite has been set.&quot;);</span>
+        }
+<span class="fc" id="L257">        userContextCheck(userContext);</span>
+<span class="fc" id="L258">        this.userContext = userContext;</span>
+
+<span class="fc" id="L260">        logger.debug(format(&quot;Setting user context to MSPID: %s user: %s&quot;, userContext.getMspId(), userContext.getName()));</span>
+
+<span class="fc" id="L262">    }</span>
+
+    /**
+     * Create a new Eventhub.
+     *
+     * @param name       name of Orderer.
+     * @param grpcURL    url location of orderer grpc or grpcs protocol.
+     * @param properties &lt;p&gt;
+     *                   Supported properties
+     *                   &lt;ul&gt;
+     *                   &lt;li&gt;pemFile - File location for x509 pem certificate for SSL.&lt;/li&gt;
+     *                   &lt;li&gt;trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
+     *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
+     *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
+     *                   useful in development to get past default server hostname verification during
+     *                   TLS handshake, when the server host name does not match the certificate.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;hostnameOverride - Specify the certificates CN -- for development only.
+     *                   &lt;li&gt;sslProvider - Specify the SSL provider, openSSL or JDK.&lt;/li&gt;
+     *                   &lt;li&gt;negotiationType - Specify the type of negotiation, TLS or plainText.&lt;/li&gt;
+     *                   &lt;li&gt;If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
+     *                   hostname verifications during TLS handshake.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;
+     *                   grpc.NettyChannelBuilderOption.&amp;lt;methodName&amp;gt;  where methodName is any method on
+     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
+     *                   parameters need to be supplied in an array of Objects.
+     *                   &lt;/li&gt;
+     *                   &lt;/ul&gt;
+     * @return The orderer.
+     * @throws InvalidArgumentException
+     */
+
+    public EventHub newEventHub(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+<span class="fc" id="L297">        clientCheck();</span>
+<span class="fc" id="L298">        return EventHub.createNewInstance(name, grpcURL, executorService, properties);</span>
+    }
+
+    /**
+     * Create a new event hub
+     *
+     * @param name    Name of eventhup should match peer's name it's associated with.
+     * @param grpcURL The http url location of the event hub
+     * @return event hub
+     * @throws InvalidArgumentException
+     */
+
+    public EventHub newEventHub(String name, String grpcURL) throws InvalidArgumentException {
+<span class="fc" id="L311">        clientCheck();</span>
+<span class="fc" id="L312">        return newEventHub(name, grpcURL, null);</span>
+    }
+
+    /**
+     * Create a new urlOrderer.
+     *
+     * @param name    name of the orderer.
+     * @param grpcURL url location of orderer grpc or grpcs protocol.
+     * @return a new Orderer.
+     * @throws InvalidArgumentException
+     */
+
+    public Orderer newOrderer(String name, String grpcURL) throws InvalidArgumentException {
+<span class="fc" id="L325">        clientCheck();</span>
+<span class="fc" id="L326">        return newOrderer(name, grpcURL, null);</span>
+    }
+
+    /**
+     * Create a new orderer.
+     *
+     * @param name       name of Orderer.
+     * @param grpcURL    url location of orderer grpc or grpcs protocol.
+     * @param properties &lt;p&gt;
+     *                   Supported properties
+     *                   &lt;ul&gt;
+     *                   &lt;li&gt;pemFile - File location for x509 pem certificate for SSL.&lt;/li&gt;
+     *                   &lt;li&gt;trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
+     *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
+     *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
+     *                   useful in development to get past default server hostname verification during
+     *                   TLS handshake, when the server host name does not match the certificate.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;sslProvider - Specify the SSL provider, openSSL or JDK.&lt;/li&gt;
+     *                   &lt;li&gt;negotiationType - Specify the type of negotiation, TLS or plainText.&lt;/li&gt;
+     *                   &lt;li&gt;hostnameOverride - Specify the certificates CN -- for development only.
+     *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
+     *                   hostname verifications during TLS handshake.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;
+     *                   grpc.NettyChannelBuilderOption.&amp;lt;methodName&amp;gt;  where methodName is any method on
+     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
+     *                   parameters need to be supplied in an array of Objects.
+     *                   &lt;/li&gt;
+     *                   &lt;li&gt;
+     *                   ordererWaitTimeMilliSecs Time to wait in milliseconds for the
+     *                   Orderer to accept requests before timing out. The default is two seconds.
+     *                   &lt;/li&gt;
+     *                   &lt;/ul&gt;
+     * @return The orderer.
+     * @throws InvalidArgumentException
+     */
+
+    public Orderer newOrderer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+<span class="fc" id="L366">        clientCheck();</span>
+<span class="fc" id="L367">        return Orderer.createNewInstance(name, grpcURL, properties);</span>
+    }
+
+    /**
+     * Query the channels for peers
+     *
+     * @param peer the peer to query
+     * @return A set of strings with the peer names.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public Set&lt;String&gt; queryChannels(Peer peer) throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L380">        clientCheck();</span>
+
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">        if (null == peer) {</span>
+
+<span class="nc" id="L384">            throw new InvalidArgumentException(&quot;peer set to null&quot;);</span>
+
+        }
+
+        //Run this on a system channel.
+
+        try {
+<span class="fc" id="L391">            Channel systemChannel = Channel.newSystemChannel(this);</span>
+
+<span class="nc" id="L393">            return systemChannel.queryChannels(peer);</span>
+<span class="nc" id="L394">        } catch (InvalidArgumentException e) {</span>
+<span class="nc" id="L395">            throw e;  //dont log</span>
+<span class="fc" id="L396">        } catch (ProposalException e) {</span>
+<span class="fc" id="L397">            logger.error(format(&quot;queryChannels for peer %s failed.&quot; + e.getMessage(), peer.getName()), e);</span>
+<span class="fc" id="L398">            throw e;</span>
+        }
+
+    }
+
+    /**
+     * Query the peer for installed chaincode information
+     *
+     * @param peer The peer to query.
+     * @return List of ChaincodeInfo on installed chaincode @see {@link ChaincodeInfo}
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public List&lt;ChaincodeInfo&gt; queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+
+<span class="nc" id="L414">        clientCheck();</span>
+
+<span class="nc bnc" id="L416" title="All 2 branches missed.">        if (null == peer) {</span>
+
+<span class="nc" id="L418">            throw new InvalidArgumentException(&quot;peer set to null&quot;);</span>
+
+        }
+
+        try {
+            //Run this on a system channel.
+
+<span class="nc" id="L425">            Channel systemChannel = Channel.newSystemChannel(this);</span>
+
+<span class="nc" id="L427">            return systemChannel.queryInstalledChaincodes(peer);</span>
+<span class="nc" id="L428">        } catch (ProposalException e) {</span>
+<span class="nc" id="L429">            logger.error(format(&quot;queryInstalledChaincodes for peer %s failed.&quot; + e.getMessage(), peer.getName()), e);</span>
+<span class="nc" id="L430">            throw e;</span>
+        }
+
+    }
+
+    /**
+     * Get signature for channel configuration
+     *
+     * @param channelConfiguration
+     * @param signer
+     * @return byte array with the signature
+     * @throws InvalidArgumentException
+     */
+
+    public byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
+
+<span class="nc" id="L446">        clientCheck();</span>
+
+<span class="nc" id="L448">        Channel systemChannel = Channel.newSystemChannel(this);</span>
+<span class="nc" id="L449">        return systemChannel.getChannelConfigurationSignature(channelConfiguration, signer);</span>
+
+    }
+
+    /**
+     * Get signature for update channel configuration
+     *
+     * @param updateChannelConfiguration
+     * @param signer
+     * @return byte array with the signature
+     * @throws InvalidArgumentException
+     */
+
+    public byte[] getUpdateChannelConfigurationSignature(UpdateChannelConfiguration updateChannelConfiguration, User signer) throws InvalidArgumentException {
+
+<span class="nc" id="L464">        clientCheck();</span>
+
+<span class="nc" id="L466">        Channel systemChannel = Channel.newSystemChannel(this);</span>
+<span class="nc" id="L467">        return systemChannel.getUpdateChannelConfigurationSignature(updateChannelConfiguration, signer);</span>
+
+    }
+
+    /**
+     * Send install chaincode request proposal to peers.
+     *
+     * @param installProposalRequest
+     * @param peers                  Collection of peers to install on.
+     * @return responses from peers.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public Collection&lt;ProposalResponse&gt; sendInstallProposal(InstallProposalRequest installProposalRequest, Collection&lt;Peer&gt; peers)
+            throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L484">        clientCheck();</span>
+
+<span class="nc" id="L486">        installProposalRequest.setSubmitted();</span>
+<span class="nc" id="L487">        Channel systemChannel = Channel.newSystemChannel(this);</span>
+
+<span class="nc" id="L489">        return systemChannel.sendInstallProposal(installProposalRequest, peers);</span>
+
+    }
+
+    private void clientCheck() throws InvalidArgumentException {
+
+<span class="fc bfc" id="L495" title="All 2 branches covered.">        if (null == cryptoSuite) {</span>
+<span class="fc" id="L496">            throw new InvalidArgumentException(&quot;No cryptoSuite has been set.&quot;);</span>
+        }
+
+<span class="fc" id="L499">        userContextCheck(userContext);</span>
+
+<span class="fc" id="L501">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

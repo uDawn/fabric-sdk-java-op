@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BlockInfo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">BlockInfo.java</span></div><h1>BlockInfo.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.hyperledger.fabric.sdk;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.ledger.rwset.Rwset.TxReadWriteSet;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
+import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
+
+import static org.hyperledger.fabric.protos.peer.FabricProposalResponse.Endorsement;
+
+/**
+ * BlockInfo contains the data from a {@link Block}
+ */
+public class BlockInfo {
+    private final BlockDeserializer block;
+
+<span class="fc" id="L37">    BlockInfo(Block block) {</span>
+<span class="fc" id="L38">        this.block = new BlockDeserializer(block);</span>
+<span class="fc" id="L39">    }</span>
+
+    public String getChannelId() throws InvalidProtocolBufferException {
+
+<span class="fc" id="L43">        return getEnvelopeInfo(0).getChannelId();</span>
+    }
+
+    /**
+     * @return the raw {@link Block}
+     */
+    public Block getBlock() {
+<span class="fc" id="L50">        return block.getBlock();</span>
+    }
+
+    /**
+     * @return the {@link Block} previousHash value
+     */
+    public byte[] getPreviousHash() {
+<span class="nc" id="L57">        return block.getPreviousHash().toByteArray();</span>
+    }
+
+    /**
+     * @return the {@link Block} data hash value
+     */
+    public byte[] getDataHash() {
+
+<span class="nc" id="L65">        return block.getDataHash().toByteArray();</span>
+    }
+
+    /**
+     * @return the {@link Block} transaction metadata value
+     */
+    public byte[] getTransActionsMetaData() {
+
+<span class="nc" id="L73">        return block.getTransActionsMetaData();</span>
+    }
+
+    /**
+     * @return the {@link Block} index number
+     */
+    public long getBlockNumber() {
+<span class="nc" id="L80">        return block.getNumber();</span>
+    }
+
+    /**
+     * getEnvelopeCount
+     *
+     * @return the number of transactions in this block.
+     */
+
+    public int getEnvelopeCount() {
+<span class="fc" id="L90">        return block.getData().getDataCount();</span>
+    }
+
+//    /**
+//     * Get transaction info on a specific transaction.
+//     *
+//     * @param index index into the block.
+//     * @return Transaction Info
+//     * @throws InvalidProtocolBufferException
+//     */
+
+//    public TransactionEnvelopeInfo getEnvelopeInfo(int index) throws InvalidProtocolBufferException {
+//
+//        try {
+//            // block.getData(0).getEnvelope().getSignature();
+//
+//            EnvelopeDeserializer.newInstance(block.getBlock().getData().getData(index));
+//
+//            final PayloadDeserializer payload = block.getData(index).getPayload();
+//
+//            return new TransactionEnvelopeInfo(null, payload.getHeader());
+//        } catch (InvalidProtocolBufferRuntimeException e) {
+//            throw (InvalidProtocolBufferException) e.getCause();
+//        }
+//
+//    }
+//
+
+    public class EnvelopeInfo {
+        private final EnvelopeDeserializer envelopeDeserializer;
+        HeaderDeserializer headerDeserializer;
+
+        //private final EnvelopeDeserializer envelopeDeserializer;
+
+<span class="fc" id="L124">        EnvelopeInfo(EnvelopeDeserializer envelopeDeserializer, int blockIndex) {</span>
+<span class="fc" id="L125">            this.envelopeDeserializer = envelopeDeserializer;</span>
+<span class="fc" id="L126">            headerDeserializer = envelopeDeserializer.getPayload().getHeader();</span>
+<span class="fc" id="L127">            headerDeserializer.getChannelHeader().getType();</span>
+<span class="fc" id="L128">        }</span>
+
+        public String getChannelId() {
+
+<span class="fc" id="L132">            return headerDeserializer.getChannelHeader().getChannelId();</span>
+        }
+
+        public String getTransactionID() {
+
+<span class="nc" id="L137">            return headerDeserializer.getChannelHeader().getTxId();</span>
+        }
+
+        public long getEpoch() {
+
+<span class="nc" id="L142">            return headerDeserializer.getChannelHeader().getEpoch();</span>
+        }
+
+        public Date getTimestamp() {
+
+<span class="nc" id="L147">            return ProtoUtils.getDateFromTimestamp(headerDeserializer.getChannelHeader().getTimestamp());</span>
+        }
+
+        /**
+         * @return whether this Transaction is marked as TxValidationCode.VALID
+         */
+        public boolean isValid() {
+<span class="fc" id="L154">            return envelopeDeserializer.isValid();</span>
+        }
+
+        /**
+         * @return the validation code of this Transaction (enumeration TxValidationCode in Transaction.proto)
+         */
+        public byte getValidationCode() {
+<span class="fc" id="L161">            return envelopeDeserializer.validationCode();</span>
+        }
+
+        public EnvelopeType getType() {
+
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            switch (headerDeserializer.getChannelHeader().getType()) {</span>
+                case 3:
+<span class="nc" id="L168">                    return EnvelopeType.TRANSACTION_ENVELOPE;</span>
+
+                default:
+<span class="nc" id="L171">                    return EnvelopeType.ENVELOPE;</span>
+            }
+
+        }
+
+    }
+
+    public EnvelopeInfo getEnvelopeInfo(int blockIndex) throws InvalidProtocolBufferException {
+
+        try {
+            // block.getData(0).getEnvelope().getSignature();
+
+            EnvelopeInfo ret;
+
+<span class="fc" id="L185">            EnvelopeDeserializer ed = EnvelopeDeserializer.newInstance(block.getBlock().getData().getData(blockIndex), block.getTransActionsMetaData()[blockIndex]);</span>
+
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">            switch (ed.getType()) {</span>
+                case 3:
+<span class="fc" id="L189">                    ret = new TransactionEnvelopeInfo((EndorserTransactionEnvDeserializer) ed, blockIndex);</span>
+<span class="fc" id="L190">                    break;</span>
+                default: //just assume base properties.
+<span class="nc" id="L192">                    ret = new EnvelopeInfo(ed, blockIndex);</span>
+                    break;
+
+            }
+<span class="fc" id="L196">            return ret;</span>
+
+<span class="nc" id="L198">        } catch (InvalidProtocolBufferRuntimeException e) {</span>
+<span class="nc" id="L199">            throw e.getCause();</span>
+        }
+
+    }
+
+    public Iterable&lt;EnvelopeInfo&gt; getEnvelopeInfos() {
+
+<span class="nc" id="L206">        return new TransactionInfoIterable();</span>
+    }
+
+    public class TransactionEnvelopeInfo extends EnvelopeInfo {
+
+        EndorserTransactionEnvDeserializer getTransactionDeserializer() {
+<span class="fc" id="L212">            return transactionDeserializer;</span>
+        }
+
+        protected final EndorserTransactionEnvDeserializer transactionDeserializer;
+
+<span class="fc" id="L217">        public TransactionEnvelopeInfo(EndorserTransactionEnvDeserializer transactionDeserializer, int blockIndex) {</span>
+<span class="fc" id="L218">            super(transactionDeserializer, blockIndex);</span>
+
+<span class="fc" id="L220">            this.transactionDeserializer = transactionDeserializer;</span>
+<span class="fc" id="L221">            this.headerDeserializer = transactionDeserializer.getPayload().getHeader();</span>
+
+<span class="fc" id="L223">        }</span>
+
+        public int getTransactionActionInfoCount() {
+<span class="nc" id="L226">            return transactionDeserializer.getPayload().getTransaction().getActionsCount();</span>
+        }
+
+        public Iterable&lt;TransactionActionInfo&gt; getTransactionActionInfos() {
+
+<span class="nc" id="L231">            return new TransactionActionIterable();</span>
+        }
+
+        public class TransactionActionInfo {
+
+            private final TransactionActionDeserializer transactionAction;
+<span class="nc" id="L237">            List&lt;EndorserInfo&gt; endorserInfos = null;</span>
+
+<span class="nc" id="L239">            TransactionActionInfo(TransactionActionDeserializer transactionAction) {</span>
+
+<span class="nc" id="L241">                this.transactionAction = transactionAction;</span>
+<span class="nc" id="L242">            }</span>
+
+            public byte[] getResponseMessageBytes() {
+<span class="nc" id="L245">                return transactionAction.getPayload().getAction().getProposalResponsePayload().getExtension().getResponseMessageBytes();</span>
+            }
+
+            public String getResponseMessage() {
+<span class="nc" id="L249">                return transactionAction.getPayload().getAction().getProposalResponsePayload().getExtension().getResponseMessage();</span>
+            }
+
+            public int getResponseStatus() {
+<span class="nc" id="L253">                return transactionAction.getPayload().getAction().getProposalResponsePayload().getExtension().getResponseStatus();</span>
+            }
+
+<span class="nc" id="L256">            int getChaincodeInputArgsCount = -1;</span>
+
+            public int getChaincodeInputArgsCount() {
+<span class="nc bnc" id="L259" title="All 2 branches missed.">                if (getChaincodeInputArgsCount &lt; 0) {</span>
+<span class="nc" id="L260">                    getChaincodeInputArgsCount = transactionAction.getPayload().getChaincodeProposalPayload().</span>
+<span class="nc" id="L261">                            getChaincodeInvocationSpec().getChaincodeInput().getChaincodeInput().getArgsCount();</span>
+                }
+<span class="nc" id="L263">                return getChaincodeInputArgsCount;</span>
+            }
+
+            public byte[] getChaincodeInputArgs(int index) {
+
+<span class="nc" id="L268">                ChaincodeInput input = transactionAction.getPayload().getChaincodeProposalPayload().</span>
+<span class="nc" id="L269">                        getChaincodeInvocationSpec().getChaincodeInput().getChaincodeInput();</span>
+
+<span class="nc" id="L271">                return input.getArgs(index).toByteArray();</span>
+            }
+
+<span class="nc" id="L274">            int getEndorsementsCount = -1;</span>
+
+            public int getEndorsementsCount() {
+<span class="nc bnc" id="L277" title="All 2 branches missed.">                if (getEndorsementsCount &lt; 0) {</span>
+<span class="nc" id="L278">                    getEndorsementsCount = transactionAction.getPayload().getAction().getEndorsementsCount();</span>
+                }
+<span class="nc" id="L280">                return getEndorsementsCount;</span>
+            }
+
+            public EndorserInfo getEndorsementInfo(int index) {
+<span class="nc bnc" id="L284" title="All 2 branches missed.">                if (null == endorserInfos) {</span>
+<span class="nc" id="L285">                    endorserInfos = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L287" title="All 2 branches missed.">                    for (Endorsement endorsement : transactionAction.getPayload().getAction()</span>
+<span class="nc" id="L288">                            .getChaincodeEndorsedAction().getEndorsementsList()) {</span>
+
+<span class="nc" id="L290">                        endorserInfos.add(new EndorserInfo(endorsement));</span>
+
+<span class="nc" id="L292">                    }</span>
+                }
+<span class="nc" id="L294">                return endorserInfos.get(index);</span>
+
+            }
+
+            public byte[] getProposalResponseMessageBytes() {
+
+<span class="nc" id="L300">                return transactionAction.getPayload().getAction().getProposalResponsePayload().getExtension().getResponseMessageBytes();</span>
+
+            }
+
+            public byte[] getProposalResponsePayload() {
+<span class="nc" id="L305">                byte[] ret = null;</span>
+
+<span class="nc" id="L307">                ByteString retByteString = transactionAction.getPayload().getAction().getProposalResponsePayload().</span>
+<span class="nc" id="L308">                        getExtension().getResponsePayload();</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">                if (null != retByteString) {</span>
+
+<span class="nc" id="L311">                    ret = retByteString.toByteArray();</span>
+                }
+<span class="nc" id="L313">                return ret;</span>
+
+            }
+
+            public int getProposalResponseStatus() {
+
+<span class="nc" id="L319">                return transactionAction.getPayload().getAction().getProposalResponsePayload().</span>
+<span class="nc" id="L320">                        getExtension().getResponseStatus();</span>
+
+            }
+
+            public TxReadWriteSetInfo getTxReadWriteSet() {
+
+<span class="nc" id="L326">                TxReadWriteSet txReadWriteSet = transactionAction.getPayload().getAction().getProposalResponsePayload()</span>
+<span class="nc" id="L327">                        .getExtension().getResults();</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">                if (txReadWriteSet == null) {</span>
+<span class="nc" id="L329">                    return null;</span>
+                }
+
+<span class="nc" id="L332">                return new TxReadWriteSetInfo(txReadWriteSet);</span>
+
+            }
+
+        }
+
+        public TransactionActionInfo getTransactionActionInfo(int index) {
+<span class="nc" id="L339">            return new TransactionActionInfo(transactionDeserializer.getPayload().getTransaction().getTransactionAction(index));</span>
+        }
+
+        public class TransactionActionInfoIterator implements Iterator&lt;TransactionActionInfo&gt; {
+<span class="nc" id="L343">            int ci = 0;</span>
+            final int max;
+
+<span class="nc" id="L346">            TransactionActionInfoIterator() {</span>
+<span class="nc" id="L347">                max = getTransactionActionInfoCount();</span>
+
+<span class="nc" id="L349">            }</span>
+
+            @Override
+            public boolean hasNext() {
+<span class="nc bnc" id="L353" title="All 2 branches missed.">                return ci &lt; max;</span>
+
+            }
+
+            @Override
+            public TransactionActionInfo next() {
+
+<span class="nc" id="L360">                return getTransactionActionInfo(ci++);</span>
+
+            }
+        }
+
+<span class="nc" id="L365">        public class TransactionActionIterable implements Iterable&lt;TransactionActionInfo&gt; {</span>
+
+            @Override
+            public Iterator&lt;TransactionActionInfo&gt; iterator() {
+<span class="nc" id="L369">                return new TransactionActionInfoIterator();</span>
+            }
+        }
+
+    }
+
+    /**
+     * Iterable interface over transaction info in the block.
+     *
+     * @return iterator
+     */
+
+    public Iterable&lt;EnvelopeInfo&gt; getTransactionActionInfos() {
+
+<span class="nc" id="L383">        return new TransactionInfoIterable();</span>
+
+    }
+
+    class TransactionInfoIterator implements Iterator&lt;EnvelopeInfo&gt; {
+<span class="nc" id="L388">        int ci = 0;</span>
+        final int max;
+
+<span class="nc" id="L391">        TransactionInfoIterator() {</span>
+<span class="nc" id="L392">            max = block.getData().getDataCount();</span>
+
+<span class="nc" id="L394">        }</span>
+
+        @Override
+        public boolean hasNext() {
+<span class="nc bnc" id="L398" title="All 2 branches missed.">            return ci &lt; max;</span>
+
+        }
+
+        @Override
+        public EnvelopeInfo next() {
+
+            try {
+<span class="nc" id="L406">                return getEnvelopeInfo(ci++);</span>
+<span class="nc" id="L407">            } catch (InvalidProtocolBufferException e) {</span>
+<span class="nc" id="L408">                throw new InvalidProtocolBufferRuntimeException(e);</span>
+            }
+
+        }
+    }
+
+<span class="nc" id="L414">    class TransactionInfoIterable implements Iterable&lt;EnvelopeInfo&gt; {</span>
+
+        @Override
+        public Iterator&lt;EnvelopeInfo&gt; iterator() {
+<span class="nc" id="L418">            return new TransactionInfoIterator();</span>
+        }
+    }
+
+    public static class EndorserInfo {
+        private final Endorsement endorsement;
+
+<span class="nc" id="L425">        EndorserInfo(Endorsement endorsement) {</span>
+
+<span class="nc" id="L427">            this.endorsement = endorsement;</span>
+<span class="nc" id="L428">        }</span>
+
+        public byte[] getSignature() {
+<span class="nc" id="L431">            return endorsement.getSignature().toByteArray();</span>
+        }
+
+        public byte[] getEndorser() {
+<span class="nc" id="L435">            return endorsement.getEndorser().toByteArray();</span>
+        }
+
+    }
+
+<span class="nc" id="L440">    public enum EnvelopeType {</span>
+
+<span class="nc" id="L442">        TRANSACTION_ENVELOPE,</span>
+<span class="nc" id="L443">        ENVELOPE</span>
+
+    }
+
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

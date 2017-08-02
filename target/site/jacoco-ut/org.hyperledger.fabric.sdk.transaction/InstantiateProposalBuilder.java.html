@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstantiateProposalBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.transaction</a> &gt; <span class="el_source">InstantiateProposalBuilder.java</span></div><h1>InstantiateProposalBuilder.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk.transaction;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import com.google.protobuf.ByteString;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
+
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
+
+public class InstantiateProposalBuilder extends LSCCProposalBuilder {
+
+<span class="fc" id="L36">    private static final Log logger = LogFactory.getLog(InstantiateProposalBuilder.class);</span>
+
+    private String chaincodePath;
+
+    private String chaincodeName;
+    private List&lt;String&gt; argList;
+    private String chaincodeVersion;
+
+<span class="fc" id="L44">    private byte[] chaincodePolicy = null;</span>
+<span class="fc" id="L45">    protected String action = &quot;deploy&quot;;</span>
+
+    public void setTransientMap(Map&lt;String, byte[]&gt; transientMap) throws InvalidArgumentException {
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        if (null == transientMap) {</span>
+
+<span class="fc" id="L50">            throw new InvalidArgumentException(&quot;Transient map may not be null&quot;);</span>
+
+        }
+<span class="nc" id="L53">        this.transientMap = transientMap;</span>
+<span class="nc" id="L54">    }</span>
+
+    protected InstantiateProposalBuilder() {
+<span class="fc" id="L57">        super();</span>
+<span class="fc" id="L58">    }</span>
+
+    public static InstantiateProposalBuilder newBuilder() {
+<span class="fc" id="L61">        return new InstantiateProposalBuilder();</span>
+
+    }
+
+    public InstantiateProposalBuilder chaincodePath(String chaincodePath) {
+
+<span class="nc" id="L67">        this.chaincodePath = chaincodePath;</span>
+
+<span class="nc" id="L69">        return this;</span>
+
+    }
+
+    public InstantiateProposalBuilder chaincodeName(String chaincodeName) {
+
+<span class="nc" id="L75">        this.chaincodeName = chaincodeName;</span>
+
+<span class="nc" id="L77">        return this;</span>
+
+    }
+
+    public void chaincodEndorsementPolicy(ChaincodeEndorsementPolicy policy) {
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (policy != null) {</span>
+<span class="nc" id="L83">            this.chaincodePolicy = policy.getChaincodeEndorsementPolicyAsBytes();</span>
+        }
+<span class="nc" id="L85">    }</span>
+
+    public InstantiateProposalBuilder argss(List&lt;String&gt; argList) {
+<span class="nc" id="L88">        this.argList = argList;</span>
+<span class="nc" id="L89">        return this;</span>
+    }
+
+    @Override
+    public FabricProposal.Proposal build() throws ProposalException {
+
+<span class="nc" id="L95">        constructInstantiateProposal();</span>
+<span class="nc" id="L96">        return super.build();</span>
+    }
+
+    private void constructInstantiateProposal() throws ProposalException {
+
+        try {
+
+<span class="nc" id="L103">            createNetModeTransaction();</span>
+
+<span class="fc" id="L105">        } catch (Exception exp) {</span>
+<span class="fc" id="L106">            logger.error(exp);</span>
+<span class="fc" id="L107">            throw new ProposalException(&quot;IO Error while creating install transaction&quot;, exp);</span>
+<span class="nc" id="L108">        }</span>
+<span class="nc" id="L109">    }</span>
+
+    private void createNetModeTransaction() {
+<span class="fc" id="L112">        logger.debug(&quot;NetModeTransaction&quot;);</span>
+
+<span class="fc" id="L114">        List&lt;String&gt; modlist = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L115">        modlist.add(&quot;init&quot;);</span>
+<span class="nc" id="L116">        modlist.addAll(argList);</span>
+
+<span class="nc" id="L118">        ChaincodeDeploymentSpec depspec = createDeploymentSpec(ccType,</span>
+                chaincodeName, chaincodePath, chaincodeVersion, modlist, null);
+
+<span class="nc" id="L121">        List&lt;ByteString&gt; argList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L122">        argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));</span>
+<span class="nc" id="L123">        argList.add(ByteString.copyFrom(context.getChannelID(), StandardCharsets.UTF_8));</span>
+<span class="nc" id="L124">        argList.add(depspec.toByteString());</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (chaincodePolicy != null) {</span>
+<span class="nc" id="L126">            argList.add(ByteString.copyFrom(chaincodePolicy));</span>
+        }
+
+<span class="nc" id="L129">        args(argList);</span>
+
+<span class="nc" id="L131">    }</span>
+
+    public void chaincodeVersion(String chaincodeVersion) {
+<span class="nc" id="L134">        this.chaincodeVersion = chaincodeVersion;</span>
+<span class="nc" id="L135">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

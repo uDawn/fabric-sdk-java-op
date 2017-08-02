@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DiagnosticFileDumper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.helper</a> &gt; <span class="el_source">DiagnosticFileDumper.java</span></div><h1>DiagnosticFileDumper.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
+package org.hyperledger.fabric.sdk.helper;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.CompletionHandler;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.TimeZone;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Dumps files for diagnostic purposes
+ *
+ */
+
+public class DiagnosticFileDumper implements Runnable {
+
+    private final File directory;
+    private final String dirAbsolutePath;
+    private final String pid;
+    //  private static final Log logger = LogFactory.getLog(DiagnosticFileDumper.class);
+    private static Thread thread;
+<span class="nc" id="L46">    private final BlockingQueue&lt;QueEntry&gt; queEntries = new LinkedBlockingQueue&lt;&gt;();</span>
+
+<span class="nc" id="L48">    private static DiagnosticFileDumper singleInstance = null;</span>
+<span class="nc" id="L49">    private static final AtomicInteger counter = new AtomicInteger(0);</span>
+
+<span class="nc" id="L51">    private DiagnosticFileDumper(File directory) {</span>
+
+<span class="nc" id="L53">        this.directory = directory;</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        this.dirAbsolutePath = directory == null ? null : directory.getAbsolutePath();</span>
+<span class="nc" id="L55">        this.pid = getPID() + &quot;&quot;;</span>
+
+<span class="nc" id="L57">    }</span>
+
+    static DiagnosticFileDumper configInstance(File directory) {
+
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (singleInstance == null) {</span>
+<span class="nc" id="L62">            singleInstance = new DiagnosticFileDumper(directory);</span>
+<span class="nc" id="L63">            thread = new Thread(singleInstance);</span>
+<span class="nc" id="L64">            thread.setName(&quot;DiagnosticFileDumper&quot;);</span>
+<span class="nc" id="L65">            thread.setDaemon(true);</span>
+<span class="nc" id="L66">            thread.start();</span>
+
+        }
+
+<span class="nc" id="L70">        return singleInstance;</span>
+
+    }
+
+    public String createDiagnosticProtobufFile(byte[] byteString) {
+
+<span class="nc" id="L76">        return createDiagnosticFile(byteString, &quot;protobuf_&quot;, &quot;proto&quot;);</span>
+
+    }
+
+    private boolean cantWrite() {
+<span class="nc bnc" id="L81" title="All 8 branches missed.">        return null == directory || !directory.exists() || !directory.isDirectory() || !directory.canWrite();</span>
+    }
+
+    public String createDiagnosticFile(byte[] bytes) {
+
+<span class="nc" id="L86">        return createDiagnosticFile(bytes, null, null);</span>
+
+    }
+
+    public String createDiagnosticFile(byte[] bytes, String prefix, String ext) {
+<span class="nc" id="L91">        String fileName = &quot;&quot;;</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (cantWrite()) {</span>
+<span class="nc" id="L93">            return &quot;Missing dump directory or can not write: &quot; + (dirAbsolutePath);</span>
+        }
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (null != bytes) {</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            if (null == prefix) {</span>
+<span class="nc" id="L97">                prefix = &quot;diagnostic_&quot;;</span>
+            }
+<span class="nc bnc" id="L99" title="All 2 branches missed.">            if (null == ext) {</span>
+<span class="nc" id="L100">                ext = &quot;bin&quot;;</span>
+            }
+
+<span class="nc" id="L103">            SimpleDateFormat dateFormatGmt = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss_SSS&quot;);</span>
+<span class="nc" id="L104">            dateFormatGmt.setTimeZone(TimeZone.getTimeZone(&quot;UTC&quot;));</span>
+<span class="nc" id="L105">            fileName = prefix + dateFormatGmt.format(new Date()) + &quot;P&quot; + pid + &quot;_&quot; + Thread.currentThread().getId()</span>
+<span class="nc" id="L106">                    + &quot;_&quot; + counter.addAndGet(1) + &quot;.&quot; + ext;</span>
+<span class="nc" id="L107">            fileName = fileName.replaceAll(&quot;\\:&quot;, &quot;-&quot;); // colon is bad for windows.</span>
+
+<span class="nc" id="L109">            new QueEntry(fileName, bytes); //Add to Que let process by async thread.</span>
+
+        }
+<span class="nc" id="L112">        return fileName;</span>
+
+    }
+
+    @Override
+    public void run() {
+
+        while (true) {
+
+            try {
+<span class="nc" id="L122">                final LinkedList&lt;QueEntry&gt; entries = new LinkedList&lt;&gt;();</span>
+
+<span class="nc" id="L124">                entries.add(this.queEntries.take()); // wait on one.</span>
+<span class="nc" id="L125">                this.queEntries.drainTo(entries); //got one, see if there are more.</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                if (cantWrite()) {</span>
+<span class="nc" id="L128">                    return;  //IF the directory is missing just assume user does not want diagnostic files created anymore.</span>
+                }
+
+<span class="nc" id="L131">                entries.forEach(queEntry -&gt; {</span>
+
+                    try {
+<span class="nc" id="L134">                        final AsynchronousFileChannel channel = AsynchronousFileChannel.open(Paths.get(dirAbsolutePath, queEntry.fileName),</span>
+                                StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+<span class="nc" id="L137">                        channel.write(ByteBuffer.wrap(queEntry.dataBytes), 0, null, new CompletionHandler&lt;Integer, Object&gt;() {</span>
+                            @Override
+                            public void completed(Integer result, Object attachment) {
+                                try {
+<span class="nc" id="L141">                                    channel.close();</span>
+<span class="nc" id="L142">                                } catch (IOException e) {</span>
+                                    //best effort
+<span class="nc" id="L144">                                }</span>
+<span class="nc" id="L145">                            }</span>
+
+                            @Override
+                            public void failed(Throwable exc, Object attachment) {
+
+                                try {
+<span class="nc" id="L151">                                    channel.close();</span>
+<span class="nc" id="L152">                                } catch (IOException e) {</span>
+                                    //best effort.
+<span class="nc" id="L154">                                }</span>
+
+<span class="nc" id="L156">                            }</span>
+                        });
+
+<span class="nc" id="L159">                    } catch (IOException e) {</span>
+                        //best effort.
+<span class="nc" id="L161">                    }</span>
+
+<span class="nc" id="L163">                });</span>
+<span class="nc" id="L164">            } catch (InterruptedException e) {</span>
+                // best effort
+<span class="nc" id="L166">            }</span>
+
+        }
+
+    }
+
+    class QueEntry {
+        final String fileName;
+        final byte[] dataBytes;
+
+<span class="nc" id="L176">        QueEntry(String fileName, byte[] dataBytes) {</span>
+<span class="nc" id="L177">            this.fileName = fileName;</span>
+<span class="nc" id="L178">            this.dataBytes = dataBytes;</span>
+
+<span class="nc" id="L180">            queEntries.add(this);</span>
+
+<span class="nc" id="L182">        }</span>
+
+    }
+
+    private static long getPID() {
+        String processName =
+<span class="nc" id="L188">                java.lang.management.ManagementFactory.getRuntimeMXBean().getName();</span>
+<span class="nc" id="L189">        return Long.parseLong(processName.split(&quot;@&quot;)[0]);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

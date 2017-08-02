@@ -1,0 +1,739 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HFCAClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric_ca.sdk</a> &gt; <span class="el_source">HFCAClient.java</span></div><h1>HFCAClient.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric_ca.sdk;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.MalformedURLException;
+import java.net.Socket;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.Properties;
+
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.xml.bind.DatatypeConverter;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.util.EntityUtils;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.helper.Utils;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
+import org.hyperledger.fabric_ca.sdk.exception.RevocationException;
+import org.hyperledger.fabric_ca.sdk.helper.Config;
+
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+/**
+ * HFCAClient Hyperledger Fabric Certificate Authority Client.
+ */
+@SuppressWarnings (&quot;deprecation&quot;)
+public class HFCAClient {
+<span class="fc" id="L97">    private static final Log logger = LogFactory.getLog(HFCAClient.class);</span>
+<span class="fc" id="L98">    Config config = Config.getConfig(); //Load config so enable logging setting.</span>
+    private static final String HFCA_CONTEXT_ROOT = &quot;/api/v1/&quot;;
+    private static final String HFCA_ENROLL = HFCA_CONTEXT_ROOT + &quot;enroll&quot;;
+    private static final String HFCA_REGISTER = HFCA_CONTEXT_ROOT + &quot;register&quot;;
+    private static final String HFCA_REENROLL = HFCA_CONTEXT_ROOT + &quot;reenroll&quot;;
+    private static final String HFCA_REVOKE = HFCA_CONTEXT_ROOT + &quot;revoke&quot;;
+
+    static final String FABRIC_CA_REQPROP = &quot;caname&quot;;
+
+    private final String url;
+    private final boolean isSSL;
+    private final Properties properties;
+    private final String name;
+
+    // TODO require use of CryptoPrimitives since we need the generateCertificateRequests methods
+    // clean this up when we do have multiple implementations of CryptoSuite
+    // see FAB-2628
+    private CryptoPrimitives cryptoPrimitives;
+
+    /**
+     * HFCAClient constructor
+     *
+     * @param url        Http URL for the Fabric's certificate authority services endpoint
+     * @param properties PEM used for SSL .. not implemented.
+     *                   &lt;p&gt;
+     *                   Supported properties
+     *                   &lt;ul&gt;
+     *                   &lt;li&gt;pemFile - File location for x509 pem certificate for SSL.&lt;/li&gt;
+     *                   &lt;li&gt;allowAllHostNames - boolen(true/false) override certificates CN Host matching -- for development only.&lt;/li&gt;
+     *                   &lt;/ul&gt;
+     * @throws MalformedURLException
+     */
+<span class="fc" id="L130">    HFCAClient(String name, String url, Properties properties) throws MalformedURLException {</span>
+<span class="fc" id="L131">        logger.debug(format(&quot;new HFCAClient %s&quot;, url));</span>
+<span class="fc" id="L132">        this.url = url;</span>
+
+<span class="fc" id="L134">        this.name = name; //name may be null</span>
+
+<span class="fc" id="L136">        URL purl = new URL(url);</span>
+<span class="fc" id="L137">        final String proto = purl.getProtocol();</span>
+<span class="fc bfc" id="L138" title="All 4 branches covered.">        if (!&quot;http&quot;.equals(proto) &amp;&amp; !&quot;https&quot;.equals(proto)) {</span>
+<span class="fc" id="L139">            throw new IllegalArgumentException(&quot;HFCAClient only supports http or https not &quot; + proto);</span>
+        }
+<span class="fc" id="L141">        final String host = purl.getHost();</span>
+
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(host)) {</span>
+<span class="fc" id="L144">            throw new IllegalArgumentException(&quot;HFCAClient url needs host&quot;);</span>
+        }
+
+<span class="fc" id="L147">        final String path = purl.getPath();</span>
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!Utils.isNullOrEmpty(path)) {</span>
+
+<span class="fc" id="L151">            throw new IllegalArgumentException(&quot;HFCAClient url does not support path portion in url remove path: '&quot; + path + &quot;'.&quot;);</span>
+        }
+
+<span class="fc" id="L154">        final String query = purl.getQuery();</span>
+
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (!Utils.isNullOrEmpty(query)) {</span>
+
+<span class="fc" id="L158">            throw new IllegalArgumentException(&quot;HFCAClient url does not support query portion in url remove query: '&quot; + query + &quot;'.&quot;);</span>
+        }
+
+<span class="fc" id="L161">        isSSL = &quot;https&quot;.equals(proto);</span>
+
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (properties != null) {</span>
+<span class="fc" id="L164">            this.properties = (Properties) properties.clone(); //keep our own copy.</span>
+        } else {
+<span class="fc" id="L166">            this.properties = null;</span>
+        }
+
+<span class="fc" id="L169">    }</span>
+
+    public static HFCAClient createNewInstance(String url, Properties properties) throws MalformedURLException {
+
+<span class="fc" id="L173">        return new HFCAClient(null, url, properties);</span>
+
+    }
+
+    public static HFCAClient createNewInstance(String name, String url, Properties properties) throws MalformedURLException, InvalidArgumentException {
+
+<span class="fc bfc" id="L179" title="All 4 branches covered.">        if (name == null || name.isEmpty()) {</span>
+
+<span class="fc" id="L181">            throw new InvalidArgumentException(&quot;name must not be null or an empty string.&quot;);</span>
+        }
+
+<span class="fc" id="L184">        return new HFCAClient(name, url, properties);</span>
+
+    }
+
+    public void setCryptoSuite(CryptoSuite cryptoSuite) {
+<span class="fc" id="L189">        this.cryptoPrimitives = (CryptoPrimitives) cryptoSuite;</span>
+        try {
+<span class="fc" id="L191">            cryptoPrimitives.init();</span>
+<span class="nc" id="L192">        } catch (Exception e) {</span>
+<span class="nc" id="L193">            logger.error(e);</span>
+<span class="fc" id="L194">        }</span>
+<span class="fc" id="L195">    }</span>
+
+    public CryptoSuite getCryptoSuite() {
+<span class="fc" id="L198">        return cryptoPrimitives;</span>
+    }
+
+    /**
+     * Register a user.
+     *
+     * @param request   Registration request with the following fields: name, role.
+     * @param registrar The identity of the registrar (i.e. who is performing the registration).
+     * @return the enrollment secret.
+     * @throws RegistrationException    if registration fails.
+     * @throws InvalidArgumentException
+     */
+
+    public String register(RegistrationRequest request, User registrar) throws RegistrationException, InvalidArgumentException {
+
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(request.getEnrollmentID())) {</span>
+<span class="fc" id="L214">            throw new InvalidArgumentException(&quot;EntrollmentID cannot be null or empty&quot;);</span>
+        }
+
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        if (registrar == null) {</span>
+<span class="fc" id="L218">            throw new InvalidArgumentException(&quot;Registrar should be a valid member&quot;);</span>
+        }
+<span class="fc" id="L220">        logger.debug(format(&quot;register  url: %s, registrar: %s&quot;, url, registrar.getName()));</span>
+
+<span class="fc" id="L222">        setUpSSL();</span>
+
+        try {
+<span class="fc" id="L225">            String body = request.toJson();</span>
+<span class="nc" id="L226">            String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), body);</span>
+<span class="nc" id="L227">            JsonObject resp = httpPost(url + HFCA_REGISTER, body, authHdr);</span>
+<span class="nc" id="L228">            String secret = resp.getString(&quot;secret&quot;);</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">            if (secret == null) {</span>
+<span class="nc" id="L230">                throw new Exception(&quot;secret was not found in response&quot;);</span>
+            }
+<span class="nc" id="L232">            logger.debug(format(&quot;register  url: %s, registrar: %s done.&quot;, url, registrar));</span>
+<span class="nc" id="L233">            return secret;</span>
+<span class="fc" id="L234">        } catch (Exception e) {</span>
+
+<span class="fc" id="L236">            RegistrationException registrationException = new RegistrationException(format(&quot;Error while registering the user %s url: %s  %s &quot;, registrar, url, e.getMessage()), e);</span>
+<span class="fc" id="L237">            logger.error(registrar);</span>
+<span class="fc" id="L238">            throw registrationException;</span>
+
+        }
+
+    }
+
+    /**
+     * Enroll the user with member service
+     *
+     * @param user   Identity name to enroll
+     * @param secret Secret returned via registration
+     * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+    public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
+<span class="nc" id="L254">        return enroll(user, secret, new EnrollmentRequest());</span>
+    }
+
+    /**
+     * Enroll the user with member service
+     *
+     * @param user   Identity name to enroll
+     * @param secret Secret returned via registration
+     * @param req    Enrollment request with the following fields: hosts, profile, csr, label, keypair
+     * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+
+    public Enrollment enroll(String user, String secret, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
+
+<span class="fc" id="L270">        logger.debug(format(&quot;url:%s enroll user: %s&quot;, url, user));</span>
+
+<span class="fc bfc" id="L272" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(user)) {</span>
+<span class="fc" id="L273">            throw new InvalidArgumentException(&quot;enrollment user is not set&quot;);</span>
+        }
+<span class="fc bfc" id="L275" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(secret)) {</span>
+<span class="fc" id="L276">            throw new InvalidArgumentException(&quot;enrollment secret is not set&quot;);</span>
+        }
+
+<span class="fc" id="L279">        setUpSSL();</span>
+
+        try {
+<span class="fc" id="L282">            String pem = req.getCsr();</span>
+<span class="fc" id="L283">            KeyPair keypair = req.getKeyPair();</span>
+<span class="pc bpc" id="L284" title="1 of 4 branches missed.">            if (null != pem &amp;&amp; keypair == null) {</span>
+<span class="fc" id="L285">                throw new InvalidArgumentException(&quot;If certificate signing request is supplied the key pair needs to be supplied too.&quot;);</span>
+            }
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">            if (keypair == null) {</span>
+<span class="fc" id="L288">                logger.debug(&quot;[HFCAClient.enroll] Generating keys...&quot;);</span>
+
+                // generate ECDSA keys: signing and encryption keys
+<span class="fc" id="L291">                keypair = cryptoPrimitives.keyGen();</span>
+
+<span class="fc" id="L293">                logger.debug(&quot;[HFCAClient.enroll] Generating keys...done!&quot;);</span>
+            }
+
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">            if (pem == null) {</span>
+<span class="fc" id="L297">                PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, keypair);</span>
+<span class="fc" id="L298">                pem = cryptoPrimitives.certificationRequestToPEM(csr);</span>
+<span class="fc" id="L299">                req.setCSR(pem);</span>
+            }
+
+<span class="pc bpc" id="L302" title="2 of 4 branches missed.">            if (name != null &amp;&amp; !name.isEmpty()) {</span>
+<span class="fc" id="L303">                req.setCAName(name);</span>
+            }
+<span class="fc" id="L305">            String body = req.toJson();</span>
+
+<span class="nc" id="L307">            String responseBody = httpPost(url + HFCA_ENROLL, body,</span>
+                    new UsernamePasswordCredentials(user, secret));
+
+<span class="nc" id="L310">            logger.debug(&quot;response:&quot; + responseBody);</span>
+
+<span class="nc" id="L312">            JsonReader reader = Json.createReader(new StringReader(responseBody));</span>
+<span class="nc" id="L313">            JsonObject jsonst = (JsonObject) reader.read();</span>
+
+<span class="nc" id="L315">            boolean success = jsonst.getBoolean(&quot;success&quot;);</span>
+<span class="nc" id="L316">            logger.debug(format(&quot;[HFCAClient] enroll success:[%s]&quot;, success));</span>
+
+<span class="nc bnc" id="L318" title="All 2 branches missed.">            if (!success) {</span>
+<span class="nc" id="L319">                throw new EnrollmentException(format(&quot;FabricCA failed enrollment for user %s response success is false.&quot;, user));</span>
+            }
+
+<span class="nc" id="L322">            JsonObject result = jsonst.getJsonObject(&quot;result&quot;);</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">            if (result == null) {</span>
+<span class="nc" id="L324">                throw new EnrollmentException(format(&quot;FabricCA failed enrollment for user %s - response did not contain a result&quot;, user));</span>
+            }
+
+<span class="nc" id="L327">            Base64.Decoder b64dec = Base64.getDecoder();</span>
+
+<span class="nc" id="L329">            String signedPem = new String(b64dec.decode(result.getString(&quot;Cert&quot;).getBytes(UTF_8)));</span>
+<span class="nc" id="L330">            logger.debug(format(&quot;[HFCAClient] enroll returned pem:[%s]&quot;, signedPem));</span>
+
+<span class="nc" id="L332">            JsonArray messages = jsonst.getJsonArray(&quot;messages&quot;);</span>
+<span class="nc bnc" id="L333" title="All 4 branches missed.">            if (messages != null &amp;&amp; !messages.isEmpty()) {</span>
+<span class="nc" id="L334">                JsonObject jo = messages.getJsonObject(0);</span>
+<span class="nc" id="L335">                String message = format(&quot;Enroll request response message [code %d]: %s&quot;, jo.getInt(&quot;code&quot;), jo.getString(&quot;message&quot;));</span>
+<span class="nc" id="L336">                logger.info(message);</span>
+            }
+<span class="nc" id="L338">            logger.debug(&quot;Enrollment done.&quot;);</span>
+
+<span class="nc" id="L340">            return new HFCAEnrollment(keypair, signedPem);</span>
+
+<span class="nc" id="L342">        } catch (EnrollmentException ee) {</span>
+<span class="nc" id="L343">            logger.error(format(&quot;url:%s, user:%s  error:%s&quot;, url, user, ee.getMessage()), ee);</span>
+<span class="nc" id="L344">            throw ee;</span>
+<span class="fc" id="L345">        } catch (Exception e) {</span>
+<span class="fc" id="L346">            EnrollmentException ee = new EnrollmentException(format(&quot;Url:%s, Failed to enroll user %s &quot;, url, user), e);</span>
+<span class="fc" id="L347">            logger.error(e.getMessage(), e);</span>
+<span class="fc" id="L348">            throw ee;</span>
+        }
+
+    }
+
+    /**
+     * Re-Enroll the user with member service
+     *
+     * @param user User to be re-enrolled
+     * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+    public Enrollment reenroll(User user) throws EnrollmentException, InvalidArgumentException {
+<span class="nc" id="L362">        return reenroll(user, new EnrollmentRequest());</span>
+    }
+
+    /**
+     * Re-Enroll the user with member service
+     *
+     * @param user User to be re-enrolled
+     * @param req  Enrollment request with the following fields: hosts, profile, csr, label
+     * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+
+    public Enrollment reenroll(User user, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
+
+<span class="fc bfc" id="L377" title="All 2 branches covered.">        if (user == null) {</span>
+<span class="fc" id="L378">            throw new InvalidArgumentException(&quot;reenrollment user is missing&quot;);</span>
+        }
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">        if (user.getEnrollment() == null) {</span>
+<span class="fc" id="L381">            throw new InvalidArgumentException(&quot;reenrollment user is not a valid user object&quot;);</span>
+        }
+
+<span class="nc" id="L384">        logger.debug(format(&quot;re-enroll user: %s, url: %s&quot;, user.getName(), url));</span>
+
+        try {
+<span class="nc" id="L387">            setUpSSL();</span>
+
+<span class="nc" id="L389">            PublicKey publicKey = cryptoPrimitives.bytesToCertificate(user.getEnrollment().getCert()</span>
+<span class="nc" id="L390">                    .getBytes(StandardCharsets.UTF_8)).getPublicKey();</span>
+
+<span class="nc" id="L392">            KeyPair keypair = new KeyPair(publicKey, user.getEnrollment().getKey());</span>
+
+            // generate CSR
+<span class="nc" id="L395">            PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user.getName(), keypair);</span>
+<span class="nc" id="L396">            String pem = cryptoPrimitives.certificationRequestToPEM(csr);</span>
+
+            // build request body
+<span class="nc" id="L399">            req.setCSR(pem);</span>
+<span class="nc bnc" id="L400" title="All 4 branches missed.">            if (name != null &amp;&amp; !name.isEmpty()) {</span>
+<span class="nc" id="L401">                req.setCAName(name);</span>
+            }
+<span class="nc" id="L403">            String body = req.toJson();</span>
+
+            // build authentication header
+<span class="nc" id="L406">            String authHdr = getHTTPAuthCertificate(user.getEnrollment(), body);</span>
+<span class="nc" id="L407">            JsonObject result = httpPost(url + HFCA_REENROLL, body, authHdr);</span>
+
+            // get new cert from response
+<span class="nc" id="L410">            Base64.Decoder b64dec = Base64.getDecoder();</span>
+<span class="nc" id="L411">            String signedPem = new String(b64dec.decode(result.getString(&quot;Cert&quot;).getBytes(UTF_8)));</span>
+<span class="nc" id="L412">            logger.debug(format(&quot;[HFCAClient] re-enroll returned pem:[%s]&quot;, signedPem));</span>
+
+<span class="nc" id="L414">            logger.debug(format(&quot;reenroll user %s done.&quot;, user.getName()));</span>
+<span class="nc" id="L415">            return new HFCAEnrollment(keypair, signedPem);</span>
+
+<span class="nc" id="L417">        } catch (EnrollmentException ee) {</span>
+<span class="nc" id="L418">            logger.error(ee.getMessage(), ee);</span>
+<span class="nc" id="L419">            throw ee;</span>
+<span class="nc" id="L420">        } catch (Exception e) {</span>
+<span class="nc" id="L421">            EnrollmentException ee = new EnrollmentException(format(&quot;Failed to re-enroll user %s&quot;, user), e);</span>
+<span class="nc" id="L422">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L423">            throw ee;</span>
+        }
+    }
+
+    /**
+     * revoke one enrollment of user
+     *
+     * @param revoker    admin user who has revoker attribute configured in CA-server
+     * @param enrollment the user enrollment to be revoked
+     * @param reason     revoke reason, see RFC 5280
+     * @throws RevocationException
+     * @throws InvalidArgumentException
+     */
+
+    public void revoke(User revoker, Enrollment enrollment, String reason) throws RevocationException, InvalidArgumentException {
+
+<span class="fc bfc" id="L439" title="All 2 branches covered.">        if (enrollment == null) {</span>
+<span class="fc" id="L440">            throw new InvalidArgumentException(&quot;revokee enrollment is not set&quot;);</span>
+        }
+<span class="fc bfc" id="L442" title="All 2 branches covered.">        if (revoker == null) {</span>
+<span class="fc" id="L443">            throw new InvalidArgumentException(&quot;revoker is not set&quot;);</span>
+        }
+
+<span class="fc" id="L446">        logger.debug(format(&quot;revoke revoker: %s, reason: %s, url: %s&quot;, revoker.getName(), reason, url));</span>
+
+        try {
+<span class="fc" id="L449">            setUpSSL();</span>
+
+            // get cert from to-be-revoked enrollment
+<span class="fc" id="L452">            BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(enrollment.getCert().getBytes()));</span>
+<span class="fc" id="L453">            CertificateFactory certFactory = CertificateFactory.getInstance(Config.getConfig().getCertificateFormat());</span>
+<span class="nc" id="L454">            X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);</span>
+
+            // get its serial number
+<span class="nc" id="L457">            String serial = DatatypeConverter.printHexBinary(certificate.getSerialNumber().toByteArray());</span>
+
+            // get its aki
+            // 2.5.29.35 : AuthorityKeyIdentifier
+<span class="nc" id="L461">            byte[] extensionValue = certificate.getExtensionValue(Extension.authorityKeyIdentifier.getId());</span>
+<span class="nc" id="L462">            ASN1OctetString akiOc = ASN1OctetString.getInstance(extensionValue);</span>
+<span class="nc" id="L463">            String aki = DatatypeConverter.printHexBinary(AuthorityKeyIdentifier.getInstance(akiOc.getOctets()).getKeyIdentifier());</span>
+
+            // build request body
+<span class="nc" id="L466">            RevocationRequest req = new RevocationRequest(name, null, serial, aki, reason);</span>
+<span class="nc" id="L467">            String body = req.toJson();</span>
+
+<span class="nc" id="L469">            String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);</span>
+
+            // send revoke request
+<span class="nc" id="L472">            httpPost(url + HFCA_REVOKE, body, authHdr);</span>
+<span class="nc" id="L473">            logger.debug(&quot;revoke done&quot;);</span>
+<span class="fc" id="L474">        } catch (CertificateException e) {</span>
+<span class="fc" id="L475">            logger.error(&quot;Cannot validate certificate. Error is: &quot; + e.getMessage());</span>
+<span class="fc" id="L476">            throw new RevocationException(&quot;Error while revoking cert. &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L477">        } catch (Exception e) {</span>
+<span class="nc" id="L478">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L479">            throw new RevocationException(&quot;Error while revoking the user. &quot; + e.getMessage(), e);</span>
+
+<span class="nc" id="L481">        }</span>
+<span class="nc" id="L482">    }</span>
+
+    /**
+     * revoke one user (including his all enrollments)
+     *
+     * @param revoker admin user who has revoker attribute configured in CA-server
+     * @param revokee user who is to be revoked
+     * @param reason  revoke reason, see RFC 5280
+     * @throws RevocationException
+     * @throws InvalidArgumentException
+     */
+
+    public void revoke(User revoker, String revokee, String reason) throws RevocationException, InvalidArgumentException {
+
+<span class="fc" id="L496">        logger.debug(format(&quot;revoke revoker: %s, revokee: %s, reason: %s&quot;, revoker, revokee, reason));</span>
+
+<span class="fc bfc" id="L498" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(revokee)) {</span>
+<span class="fc" id="L499">            throw new InvalidArgumentException(&quot;revokee user is not set&quot;);</span>
+        }
+<span class="pc bpc" id="L501" title="1 of 2 branches missed.">        if (revoker == null) {</span>
+<span class="fc" id="L502">            throw new InvalidArgumentException(&quot;revoker is not set&quot;);</span>
+        }
+
+        try {
+<span class="nc" id="L506">            setUpSSL();</span>
+
+            // build request body
+<span class="nc" id="L509">            RevocationRequest req = new RevocationRequest(name, revokee, null, null, reason);</span>
+<span class="nc" id="L510">            String body = req.toJson();</span>
+
+            // build auth header
+<span class="nc" id="L513">            String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);</span>
+
+            // send revoke request
+<span class="nc" id="L516">            httpPost(url + HFCA_REVOKE, body, authHdr);</span>
+<span class="nc" id="L517">            logger.debug(format(&quot;revoke revokee: %s done.&quot;, revokee));</span>
+<span class="nc" id="L518">        } catch (Exception e) {</span>
+<span class="nc" id="L519">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L520">            throw new RevocationException(&quot;Error while revoking the user. &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L521">        }</span>
+<span class="nc" id="L522">    }</span>
+
+    /**
+     * Http Post Request.
+     *
+     * @param url         Target URL to POST to.
+     * @param body        Body to be sent with the post.
+     * @param credentials Credentials to use for basic auth.
+     * @return Body of post returned.
+     * @throws Exception
+     */
+    String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
+<span class="fc" id="L534">        logger.debug(format(&quot;httpPost %s, body:%s&quot;, url, body));</span>
+<span class="fc" id="L535">        CredentialsProvider provider = new BasicCredentialsProvider();</span>
+
+<span class="fc" id="L537">        provider.setCredentials(AuthScope.ANY, credentials);</span>
+
+<span class="fc" id="L539">        final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();</span>
+<span class="fc" id="L540">        httpClientBuilder.setDefaultCredentialsProvider(provider);</span>
+<span class="pc bpc" id="L541" title="1 of 2 branches missed.">        if (registry != null) {</span>
+
+<span class="nc" id="L543">            httpClientBuilder.setConnectionManager(new PoolingHttpClientConnectionManager(registry));</span>
+
+        }
+
+<span class="fc" id="L547">        HttpClient client = httpClientBuilder.build();</span>
+
+<span class="fc" id="L549">        HttpPost httpPost = new HttpPost(url);</span>
+
+<span class="fc" id="L551">        AuthCache authCache = new BasicAuthCache();</span>
+
+<span class="fc" id="L553">        HttpHost targetHost = new HttpHost(httpPost.getURI().getHost(), httpPost.getURI().getPort());</span>
+
+<span class="fc" id="L555">        authCache.put(targetHost, new BasicScheme());</span>
+
+<span class="fc" id="L557">        final HttpClientContext context = HttpClientContext.create();</span>
+<span class="fc" id="L558">        context.setCredentialsProvider(provider);</span>
+
+<span class="fc" id="L560">        context.setAuthCache(authCache);</span>
+
+<span class="fc" id="L562">        httpPost.setEntity(new StringEntity(body));</span>
+<span class="fc" id="L563">        httpPost.addHeader(new BasicScheme().authenticate(credentials, httpPost, context));</span>
+
+<span class="nc" id="L565">        HttpResponse response = client.execute(httpPost, context);</span>
+<span class="nc" id="L566">        int status = response.getStatusLine().getStatusCode();</span>
+
+<span class="nc" id="L568">        HttpEntity entity = response.getEntity();</span>
+<span class="nc" id="L569">        logger.trace(format(&quot;httpPost %s  sending...&quot;, url));</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">        String responseBody = entity != null ? EntityUtils.toString(entity) : null;</span>
+<span class="nc" id="L571">        logger.trace(format(&quot;httpPost %s  responseBody %s&quot;, url, responseBody));</span>
+
+<span class="nc bnc" id="L573" title="All 2 branches missed.">        if (status &gt;= 400) {</span>
+
+<span class="nc" id="L575">            Exception e = new Exception(format(&quot;POST request to %s  with request body: %s, &quot; +</span>
+<span class="nc" id="L576">                    &quot;failed with status code: %d. Response: %s&quot;, url, body, status, responseBody));</span>
+<span class="nc" id="L577">            logger.error(e.getMessage());</span>
+<span class="nc" id="L578">            throw e;</span>
+        }
+<span class="nc" id="L580">        logger.debug(format(&quot;httpPost Status: %d returning: %s &quot;, status, responseBody));</span>
+
+<span class="nc" id="L582">        return responseBody;</span>
+    }
+
+    JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
+
+<span class="nc" id="L587">        HttpPost httpPost = new HttpPost(url);</span>
+<span class="nc" id="L588">        logger.debug(format(&quot;httpPost %s, body:%s, authHTTPCert: %s&quot;, url, body, authHTTPCert));</span>
+
+<span class="nc" id="L590">        final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();</span>
+<span class="nc bnc" id="L591" title="All 2 branches missed.">        if (registry != null) {</span>
+<span class="nc" id="L592">            httpClientBuilder.setConnectionManager(new PoolingHttpClientConnectionManager(registry));</span>
+        }
+<span class="nc" id="L594">        HttpClient client = httpClientBuilder.build();</span>
+
+<span class="nc" id="L596">        final HttpClientContext context = HttpClientContext.create();</span>
+<span class="nc" id="L597">        httpPost.setEntity(new StringEntity(body));</span>
+<span class="nc" id="L598">        httpPost.addHeader(&quot;Authorization&quot;, authHTTPCert);</span>
+
+<span class="nc" id="L600">        HttpResponse response = client.execute(httpPost, context);</span>
+<span class="nc" id="L601">        int status = response.getStatusLine().getStatusCode();</span>
+
+<span class="nc" id="L603">        HttpEntity entity = response.getEntity();</span>
+<span class="nc" id="L604">        logger.trace(format(&quot;response status %d, HttpEntity %s &quot;, status, &quot;&quot; + entity));</span>
+<span class="nc bnc" id="L605" title="All 2 branches missed.">        String responseBody = entity != null ? EntityUtils.toString(entity) : null;</span>
+<span class="nc" id="L606">        logger.trace(format(&quot;responseBody: %s &quot;, responseBody));</span>
+
+<span class="nc bnc" id="L608" title="All 2 branches missed.">        if (status &gt;= 400) {</span>
+<span class="nc" id="L609">            Exception e = new Exception(format(&quot;POST request to %s failed request body %s with status code: %d. Response: %s&quot;,</span>
+<span class="nc" id="L610">                    url, body, status, responseBody));</span>
+<span class="nc" id="L611">            logger.error(e.getMessage());</span>
+<span class="nc" id="L612">            throw e;</span>
+        }
+<span class="nc bnc" id="L614" title="All 2 branches missed.">        if (responseBody == null) {</span>
+
+<span class="nc" id="L616">            Exception e = new Exception(format(&quot;POST request to %s failed request body %s with null response body returned.&quot;, url, body));</span>
+<span class="nc" id="L617">            logger.error(e.getMessage());</span>
+<span class="nc" id="L618">            throw e;</span>
+
+        }
+<span class="nc" id="L621">        logger.debug(&quot;Status: &quot; + status);</span>
+
+<span class="nc" id="L623">        JsonReader reader = Json.createReader(new StringReader(responseBody));</span>
+<span class="nc" id="L624">        JsonObject jobj = (JsonObject) reader.read();</span>
+<span class="nc" id="L625">        boolean success = jobj.getBoolean(&quot;success&quot;);</span>
+<span class="nc bnc" id="L626" title="All 2 branches missed.">        if (!success) {</span>
+<span class="nc" id="L627">            EnrollmentException e = new EnrollmentException(</span>
+<span class="nc" id="L628">                    format(&quot;POST request to %s failed request body %s Body of response did not contain success&quot;, url, body),</span>
+                    new Exception());
+<span class="nc" id="L630">            logger.error(e.getMessage());</span>
+<span class="nc" id="L631">            throw e;</span>
+        }
+<span class="nc" id="L633">        JsonObject result = jobj.getJsonObject(&quot;result&quot;);</span>
+<span class="nc bnc" id="L634" title="All 2 branches missed.">        if (result == null) {</span>
+<span class="nc" id="L635">            EnrollmentException e = new EnrollmentException(format(&quot;POST request to %s failed request body %s &quot; +</span>
+                    &quot;Body of response did not contain result&quot;, url, body), new Exception());
+<span class="nc" id="L637">            logger.error(e.getMessage());</span>
+<span class="nc" id="L638">            throw e;</span>
+        }
+<span class="nc" id="L640">        JsonArray messages = jobj.getJsonArray(&quot;messages&quot;);</span>
+<span class="nc bnc" id="L641" title="All 4 branches missed.">        if (messages != null &amp;&amp; !messages.isEmpty()) {</span>
+<span class="nc" id="L642">            JsonObject jo = messages.getJsonObject(0);</span>
+<span class="nc" id="L643">            String message = format(&quot;POST request to %s failed request body %s response message [code %d]: %s&quot;,</span>
+<span class="nc" id="L644">                    url, body, jo.getInt(&quot;code&quot;), jo.getString(&quot;message&quot;));</span>
+<span class="nc" id="L645">            logger.info(message);</span>
+        }
+
+<span class="nc" id="L648">        logger.debug(format(&quot;httpPost %s, body:%s result: %s&quot;, url, body, &quot;&quot; + result));</span>
+<span class="nc" id="L649">        return result;</span>
+    }
+
+    private String getHTTPAuthCertificate(Enrollment enrollment, String body) throws Exception {
+<span class="fc" id="L653">        Base64.Encoder b64 = Base64.getEncoder();</span>
+<span class="nc" id="L654">        String cert = b64.encodeToString(enrollment.getCert().getBytes(UTF_8));</span>
+<span class="nc" id="L655">        body = b64.encodeToString(body.getBytes(UTF_8));</span>
+<span class="nc" id="L656">        String signString = body + &quot;.&quot; + cert;</span>
+<span class="nc" id="L657">        byte[] signature = cryptoPrimitives.sign(enrollment.getKey(), signString.getBytes(UTF_8));</span>
+<span class="nc" id="L658">        return cert + &quot;.&quot; + b64.encodeToString(signature);</span>
+    }
+
+<span class="fc" id="L661">    private Registry&lt;ConnectionSocketFactory&gt; registry = null;</span>
+
+    private void setUpSSL() throws InvalidArgumentException {
+
+<span class="pc bpc" id="L665" title="1 of 4 branches missed.">        if (isSSL &amp;&amp; null == registry) {</span>
+            try {
+
+<span class="fc" id="L668">                String pemFile = properties.getProperty(&quot;pemFile&quot;);</span>
+<span class="fc bfc" id="L669" title="All 2 branches covered.">                if (pemFile != null) {</span>
+
+<span class="nc" id="L671">                    cryptoPrimitives.addCACertificateToTrustStore(new File(pemFile), pemFile);</span>
+
+                }
+
+<span class="fc" id="L675">                SSLContext sslContext = SSLContexts.custom()</span>
+<span class="fc" id="L676">                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null)</span>
+<span class="fc" id="L677">                        .build();</span>
+
+                ConnectionSocketFactory sf;
+<span class="pc bpc" id="L680" title="1 of 2 branches missed.">                if (null != properties &amp;&amp;</span>
+<span class="fc bfc" id="L681" title="All 2 branches covered.">                        &quot;true&quot;.equals(properties.getProperty(&quot;allowAllHostNames&quot;))) {</span>
+<span class="fc" id="L682">                    AllHostsSSLSocketFactory msf = new AllHostsSSLSocketFactory(cryptoPrimitives.getTrustStore());</span>
+<span class="fc" id="L683">                    msf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);</span>
+<span class="fc" id="L684">                    sf = msf;</span>
+<span class="fc" id="L685">                } else {</span>
+<span class="fc" id="L686">                    sf = new SSLConnectionSocketFactory(sslContext);</span>
+                }
+
+<span class="fc" id="L689">                registry = RegistryBuilder.&lt;ConnectionSocketFactory&gt;create()</span>
+<span class="fc" id="L690">                        .register(&quot;https&quot;, sf)</span>
+<span class="fc" id="L691">                        .register(&quot;http&quot;, new PlainConnectionSocketFactory())</span>
+<span class="fc" id="L692">                        .build();</span>
+
+<span class="fc" id="L694">            } catch (Exception e) {</span>
+<span class="fc" id="L695">                logger.error(e);</span>
+<span class="fc" id="L696">                throw new InvalidArgumentException(e);</span>
+<span class="fc" id="L697">            }</span>
+        }
+
+<span class="fc" id="L700">    }</span>
+
+    private class AllHostsSSLSocketFactory extends SSLSocketFactory {
+<span class="fc" id="L703">        final SSLContext sslContext = SSLContext.getInstance(&quot;TLS&quot;);</span>
+
+<span class="fc" id="L705">        AllHostsSSLSocketFactory(KeyStore truststore) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, UnrecoverableKeyException {</span>
+<span class="fc" id="L706">            super(truststore);</span>
+
+<span class="fc" id="L708">            TrustManager tm = new X509TrustManager() {</span>
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+<span class="nc" id="L711">                }</span>
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+<span class="nc" id="L715">                }</span>
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+<span class="nc" id="L719">                    return null;</span>
+                }
+            };
+
+<span class="fc" id="L723">            sslContext.init(null, new TrustManager[] {tm}, null);</span>
+<span class="fc" id="L724">        }</span>
+
+        @Override
+        public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
+<span class="nc" id="L728">            return sslContext.getSocketFactory().createSocket(socket, host, port, autoClose);</span>
+        }
+
+        @Override
+        public Socket createSocket() throws IOException {
+<span class="nc" id="L733">            return sslContext.getSocketFactory().createSocket();</span>
+        }
+    }
+
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

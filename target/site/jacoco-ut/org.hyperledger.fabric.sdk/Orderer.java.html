@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Orderer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">Orderer.java</span></div><h1>Orderer.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.Properties;
+
+import io.netty.util.internal.StringUtil;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+
+/**
+ * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.
+ */
+public class Orderer {
+<span class="fc" id="L35">    private static final Log logger = LogFactory.getLog(Orderer.class);</span>
+    private final Properties properties;
+<span class="fc" id="L37">    private boolean shutdown = false;</span>
+
+    /**
+     * Get Orderer properties.
+     *
+     * @return properties
+     */
+
+    public Properties getProperties() {
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        return properties == null ? null : (Properties) properties.clone();</span>
+    }
+
+    /**
+     * Return Orderer's name
+     *
+     * @return orderer's name.
+     */
+    public String getName() {
+<span class="fc" id="L56">        return name;</span>
+    }
+
+    private final String name;
+    private final String url;
+
+<span class="fc" id="L62">    Orderer(String name, String url, Properties properties) throws InvalidArgumentException {</span>
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (StringUtil.isNullOrEmpty(name)) {</span>
+<span class="fc" id="L65">            throw new InvalidArgumentException(&quot;Invalid name for orderer&quot;);</span>
+        }
+<span class="fc" id="L67">        Exception e = checkGrpcUrl(url);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (e != null) {</span>
+<span class="fc" id="L69">            throw new InvalidArgumentException(e);</span>
+        }
+
+<span class="fc" id="L72">        this.name = name;</span>
+<span class="fc" id="L73">        this.url = url;</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.</span>
+
+<span class="fc" id="L76">    }</span>
+
+    /**
+     * getUrl - the Grpc url of the Orderer
+     *
+     * @return the Grpc url of the Orderer
+     */
+    public String getUrl() {
+<span class="fc" id="L84">        return url;</span>
+    }
+
+    void setChannel(Channel channel) throws InvalidArgumentException {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (channel == null) {</span>
+<span class="fc" id="L89">            throw new InvalidArgumentException(&quot;setChannel Channel can not be null&quot;);</span>
+        }
+
+<span class="pc bpc" id="L92" title="1 of 4 branches missed.">        if (null != this.channel &amp;&amp; this.channel != channel) {</span>
+<span class="fc" id="L93">            throw new InvalidArgumentException(format(&quot;Can not add orderer %s to channel %s because it already belongs to channel %s.&quot;,</span>
+<span class="fc" id="L94">                    name, channel.getName(), this.channel.getName()));</span>
+        }
+
+<span class="fc" id="L97">        this.channel = channel;</span>
+
+<span class="fc" id="L99">    }</span>
+
+    void unsetChannel() {
+
+<span class="nc" id="L103">        channel = null;</span>
+
+<span class="nc" id="L105">    }</span>
+
+    private Channel channel;
+
+    /**
+     * Get the channel of which this orderer is a member.
+     *
+     * @return {Channel} The channel of which this orderer is a member.
+     */
+    Channel getChannel() {
+<span class="fc" id="L115">        return this.channel;</span>
+    }
+
+    /**
+     * Send transaction to Order
+     *
+     * @param transaction transaction to be sent
+     */
+
+    Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L126">            throw new TransactionException(format(&quot;Orderer %s was shutdown.&quot;, name));</span>
+        }
+
+<span class="fc" id="L129">        logger.debug(format(&quot;Order.sendTransaction name: %s, url: %s&quot;, name, url));</span>
+
+<span class="fc" id="L131">        OrdererClient localOrdererClient = ordererClient;</span>
+
+<span class="pc bpc" id="L133" title="3 of 4 branches missed.">        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {</span>
+<span class="nc" id="L134">            ordererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder(), properties);</span>
+<span class="nc" id="L135">            localOrdererClient = ordererClient;</span>
+        }
+
+        try {
+
+<span class="nc" id="L140">            return localOrdererClient.sendTransaction(transaction);</span>
+<span class="nc" id="L141">        } catch (Throwable t) {</span>
+<span class="nc" id="L142">            ordererClient = null;</span>
+<span class="nc" id="L143">            throw t;</span>
+
+        }
+
+    }
+
+    static Orderer createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
+<span class="fc" id="L150">        return new Orderer(name, url, properties);</span>
+
+    }
+
+<span class="fc" id="L154">    private volatile OrdererClient ordererClient = null;</span>
+
+    DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
+
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L159">            throw new TransactionException(format(&quot;Orderer %s was shutdown.&quot;, name));</span>
+        }
+
+<span class="nc" id="L162">        OrdererClient localOrdererClient = ordererClient;</span>
+
+<span class="nc" id="L164">        logger.debug(format(&quot;Order.sendDeliver name: %s, url: %s&quot;, name, url));</span>
+<span class="nc bnc" id="L165" title="All 4 branches missed.">        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {</span>
+<span class="nc" id="L166">            localOrdererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder(), properties);</span>
+<span class="nc" id="L167">            ordererClient = localOrdererClient;</span>
+        }
+
+        try {
+
+<span class="nc" id="L172">            return localOrdererClient.sendDeliver(transaction);</span>
+<span class="nc" id="L173">        } catch (Throwable t) {</span>
+<span class="nc" id="L174">            ordererClient = null;</span>
+<span class="nc" id="L175">            throw t;</span>
+
+        }
+
+    }
+
+    synchronized void shutdown(boolean force) {
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L183">            return;</span>
+        }
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">        if (ordererClient != null) {</span>
+<span class="nc" id="L186">            OrdererClient torderClientDeliver = ordererClient;</span>
+<span class="nc" id="L187">            ordererClient = null;</span>
+<span class="nc" id="L188">            torderClientDeliver.shutdown(force);</span>
+
+        }
+
+<span class="fc" id="L192">        shutdown = true;</span>
+<span class="fc" id="L193">        channel = null;</span>
+
+<span class="fc" id="L195">    }</span>
+
+    @Override
+    protected void finalize() throws Throwable {
+<span class="fc" id="L199">        super.finalize();</span>
+<span class="fc" id="L200">        shutdown(true);</span>
+<span class="fc" id="L201">    }</span>
+} // end Orderer
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChaincodeEndorsementPolicy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">ChaincodeEndorsementPolicy.java</span></div><h1>ChaincodeEndorsementPolicy.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import io.netty.util.internal.StringUtil;
+import org.apache.commons.io.IOUtils;
+import org.hyperledger.fabric.protos.common.MspPrincipal.MSPPrincipal;
+import org.hyperledger.fabric.protos.common.MspPrincipal.MSPRole;
+import org.hyperledger.fabric.protos.common.Policies;
+import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
+import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
+import org.yaml.snakeyaml.Yaml;
+
+import static java.lang.String.format;
+
+/**
+ * A wrapper for the Hyperledger Fabric Policy object
+ */
+public class ChaincodeEndorsementPolicy {
+<span class="fc" id="L43">    private static final Pattern noofPattern = Pattern.compile(&quot;^(\\d+)-of$&quot;);</span>
+<span class="fc" id="L44">    private byte[] policyBytes = null;</span>
+
+    /**
+     * The null constructor for the ChaincodeEndorsementPolicy wrapper. You will
+     * need to use the {@link #fromBytes(byte[])} method to
+     * populate the policy
+     */
+<span class="fc" id="L51">    public ChaincodeEndorsementPolicy() {</span>
+<span class="fc" id="L52">    }</span>
+
+    private static SignaturePolicy parsePolicy(IndexedHashMap&lt;String, MSPPrincipal&gt; identities, Map&lt;?, ?&gt; mp) throws ChaincodeEndorsementPolicyParseException {
+
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (mp == null) {</span>
+<span class="nc" id="L57">            throw new ChaincodeEndorsementPolicyParseException(&quot;No policy section was found in the document.&quot;);</span>
+        }
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (!(mp instanceof Map)) {</span>
+<span class="nc" id="L60">            throw new ChaincodeEndorsementPolicyParseException(&quot;Policy expected object section was not found in the document.&quot;);</span>
+
+        }
+
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">        for (Map.Entry&lt;?, ?&gt; ks : mp.entrySet()) {</span>
+<span class="fc" id="L65">            Object ko = ks.getKey();</span>
+<span class="fc" id="L66">            Object vo = ks.getValue();</span>
+<span class="fc" id="L67">            final String key = (String) ko;</span>
+            // String val = (String) vo;
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            if (&quot;signed-by&quot;.equals(key)) {</span>
+
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">                if (!(vo instanceof String)) {</span>
+<span class="nc" id="L73">                    throw new ChaincodeEndorsementPolicyParseException(&quot;signed-by expecting a string value&quot;);</span>
+                }
+
+<span class="fc" id="L76">                MSPPrincipal mspPrincipal = identities.get(vo);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">                if (null == mspPrincipal) {</span>
+<span class="fc" id="L78">                    throw new ChaincodeEndorsementPolicyParseException(format(&quot;No identity found by name %s in signed-by.&quot;, vo));</span>
+                }
+
+<span class="fc" id="L81">                return SignaturePolicy.newBuilder()</span>
+<span class="fc" id="L82">                        .setSignedBy(identities.getKeysIndex((String) vo))</span>
+<span class="fc" id="L83">                        .build();</span>
+
+            } else {
+
+<span class="fc" id="L87">                Matcher match = noofPattern.matcher(key);</span>
+
+<span class="pc bpc" id="L89" title="2 of 4 branches missed.">                if (match.matches() &amp;&amp; match.groupCount() == 1) {</span>
+
+<span class="fc" id="L91">                    String matchStingNo = match.group(1).trim();</span>
+<span class="fc" id="L92">                    int matchNo = Integer.parseInt(matchStingNo);</span>
+
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">                    if (!(vo instanceof List)) {</span>
+<span class="nc" id="L95">                        throw new ChaincodeEndorsementPolicyParseException(format(&quot;%s expected to have list but found %s.&quot;, key, String.valueOf(vo)));</span>
+                    }
+
+<span class="fc" id="L98">                    @SuppressWarnings (&quot;unchecked&quot;) final List&lt;Map&lt;?, ?&gt;&gt; voList = (List&lt;Map&lt;?, ?&gt;&gt;) vo;</span>
+
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">                    if (voList.size() &lt; matchNo) {</span>
+
+<span class="nc" id="L102">                        throw new ChaincodeEndorsementPolicyParseException(format(&quot;%s expected to have at least %d items to match but only found %d.&quot;, key, matchNo, voList.size()));</span>
+                    }
+
+<span class="fc" id="L105">                    SignaturePolicy.NOutOf.Builder spBuilder = SignaturePolicy.NOutOf.newBuilder()</span>
+<span class="fc" id="L106">                            .setN(matchNo);</span>
+
+<span class="fc bfc" id="L108" title="All 2 branches covered.">                    for (Map&lt;?, ?&gt; nlo : voList) {</span>
+
+<span class="fc" id="L110">                        SignaturePolicy sp = parsePolicy(identities, nlo);</span>
+<span class="fc" id="L111">                        spBuilder.addRules(sp);</span>
+
+<span class="fc" id="L113">                    }</span>
+
+<span class="fc" id="L115">                    return SignaturePolicy.newBuilder().setNOutOf(spBuilder.build()).build();</span>
+
+                } else {
+
+<span class="nc" id="L119">                    throw new ChaincodeEndorsementPolicyParseException(format(&quot;Unsupported policy type %s&quot;, key));</span>
+                }
+
+            }
+
+        }
+<span class="nc" id="L125">        throw new ChaincodeEndorsementPolicyParseException(&quot;No values found for policy&quot;);</span>
+
+    }
+
+    private static IndexedHashMap&lt;String, MSPPrincipal&gt; parseIdentities(Map&lt;?, ?&gt; identities) throws ChaincodeEndorsementPolicyParseException {
+        //Only Role types are excepted at this time.
+
+<span class="fc" id="L132">        IndexedHashMap&lt;String, MSPPrincipal&gt; ret = new IndexedHashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (Map.Entry&lt;?, ?&gt; kp : identities.entrySet()) {</span>
+<span class="fc" id="L135">            Object key = kp.getKey();</span>
+<span class="fc" id="L136">            Object val = kp.getValue();</span>
+
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">            if (!(key instanceof String)) {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities key expected String got %s &quot;, key == null ? &quot;null&quot; : key.getClass().getName()));</span>
+            }
+
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">            if (null != ret.get(key)) {</span>
+<span class="nc" id="L143">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s is listed more than once &quot;, key));</span>
+            }
+
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">            if (!(val instanceof Map)) {</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s value expected Map got %s &quot;, key, val == null ? &quot;null&quot; : val.getClass().getName()));</span>
+            }
+
+<span class="fc" id="L150">            Object role = ((Map&lt;?, ?&gt;) val).get(&quot;role&quot;);</span>
+
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">            if (!(role instanceof Map)) {</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s value expected Map for role got %s &quot;, key, role == null ? &quot;null&quot; : role.getClass().getName()));</span>
+            }
+<span class="fc" id="L155">            final Map&lt;?, ?&gt; roleMap = (Map&lt;?, ?&gt;) role;</span>
+
+<span class="fc" id="L157">            Object name = (roleMap).get(&quot;name&quot;);</span>
+
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">            if (!(name instanceof String)) {</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s name expected String in role got %s &quot;, key, name == null ? &quot;null&quot; : name.getClass().getName()));</span>
+            }
+<span class="pc bpc" id="L162" title="1 of 4 branches missed.">            if (!&quot;member&quot;.equals(name) &amp;&amp; !&quot;admin&quot;.equals(name)) {</span>
+
+<span class="nc" id="L164">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s name expected member or admin  in role got %s &quot;, key, name));</span>
+            }
+
+<span class="fc" id="L167">            Object mspId = roleMap.get(&quot;mspId&quot;);</span>
+
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">            if (!(mspId instanceof String)) {</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s mspId expected String in role got %s &quot;, key, mspId == null ? &quot;null&quot; : mspId.getClass().getName()));</span>
+            }
+
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">            if (StringUtil.isNullOrEmpty((String) mspId)) {</span>
+
+<span class="nc" id="L175">                throw new ChaincodeEndorsementPolicyParseException(format(&quot;In identities with key %s mspId must not be null or empty String in role &quot;, key));</span>
+
+            }
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">            MSPRole mspRole = MSPRole.newBuilder().setRole(name.equals(&quot;member&quot;) ? MSPRole.MSPRoleType.MEMBER : MSPRole.MSPRoleType.ADMIN)</span>
+<span class="fc" id="L180">                    .setMspIdentifier((String) mspId).build();</span>
+
+<span class="fc" id="L182">            MSPPrincipal principal = MSPPrincipal.newBuilder()</span>
+<span class="fc" id="L183">                    .setPrincipalClassification(MSPPrincipal.Classification.ROLE)</span>
+<span class="fc" id="L184">                    .setPrincipal(mspRole.toByteString()).build();</span>
+
+<span class="fc" id="L186">            ret.put((String) key, principal);</span>
+
+<span class="fc" id="L188">        }</span>
+
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (ret.size() == 0) {</span>
+<span class="nc" id="L191">            throw new ChaincodeEndorsementPolicyParseException(&quot;No identities were found in the policy specification&quot;);</span>
+        }
+
+<span class="fc" id="L194">        return ret;</span>
+
+    }
+
+    /**
+     * constructs a ChaincodeEndorsementPolicy object with the actual policy gotten from the file system
+     *
+     * @param policyFile The file containing the policy
+     * @throws IOException
+     */
+    public void fromFile(File policyFile) throws IOException {
+<span class="fc" id="L205">        InputStream is = new FileInputStream(policyFile);</span>
+<span class="fc" id="L206">        policyBytes = IOUtils.toByteArray(is);</span>
+<span class="fc" id="L207">    }</span>
+
+    /**
+     * From a yaml file
+     *
+     * @param yamlPolicyFile File location for the chaincode endorsement policy specification.
+     * @throws IOException
+     * @throws ChaincodeEndorsementPolicyParseException
+     */
+
+    public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
+<span class="fc" id="L218">        final Yaml yaml = new Yaml();</span>
+<span class="fc" id="L219">        final Map&lt;?, ?&gt; load = (Map&lt;?, ?&gt;) yaml.load(new FileInputStream(yamlPolicyFile));</span>
+
+<span class="fc" id="L221">        Map&lt;?, ?&gt; mp = (Map&lt;?, ?&gt;) load.get(&quot;policy&quot;);</span>
+
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">        if (null == mp) {</span>
+<span class="nc" id="L224">            throw new ChaincodeEndorsementPolicyParseException(&quot;The policy file has no policy section&quot;);</span>
+        }
+
+<span class="fc" id="L227">        IndexedHashMap&lt;String, MSPPrincipal&gt; identities = parseIdentities((Map&lt;?, ?&gt;) load.get(&quot;identities&quot;));</span>
+
+<span class="fc" id="L229">        SignaturePolicy sp = parsePolicy(identities, mp);</span>
+
+<span class="fc" id="L231">        policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()</span>
+<span class="fc" id="L232">                .setVersion(0)</span>
+<span class="fc" id="L233">                .addAllIdentities(identities.values())</span>
+<span class="fc" id="L234">                .setRule(sp)</span>
+<span class="fc" id="L235">                .build().toByteArray();</span>
+<span class="fc" id="L236">    }</span>
+
+    /**
+     * Construct a chaincode endorsement policy from a stream.
+     *
+     * @param inputStream
+     * @throws IOException
+     */
+
+    public void fromStream(InputStream inputStream) throws IOException {
+<span class="nc" id="L246">        policyBytes = IOUtils.toByteArray(inputStream);</span>
+<span class="nc" id="L247">    }</span>
+
+    /**
+     * sets the ChaincodeEndorsementPolicy from a byte array
+     *
+     * @param policyAsBytes the byte array containing the serialized policy
+     */
+    public void fromBytes(byte[] policyAsBytes) {
+<span class="fc" id="L255">        this.policyBytes = policyAsBytes;</span>
+<span class="fc" id="L256">    }</span>
+
+    /**
+     * @return the policy serialized per protobuf and ready for inclusion into the various Block/Envelope/ChaincodeInputSpec structures
+     */
+    public byte[] getChaincodeEndorsementPolicyAsBytes() {
+<span class="fc" id="L262">        return policyBytes;</span>
+    }
+
+    @SuppressWarnings (&quot;serial&quot;)
+<span class="fc" id="L266">    private static class IndexedHashMap&lt;K, V&gt; extends LinkedHashMap&lt;K, V&gt; {</span>
+<span class="fc" id="L267">        final HashMap&lt;K, Integer&gt; kmap = new HashMap&lt;&gt;();</span>
+
+        @Override
+        public V put(K key, V value) {
+<span class="fc" id="L271">            kmap.put(key, size());</span>
+<span class="fc" id="L272">            return super.put(key, value);</span>
+        }
+
+        Integer getKeysIndex(String n) {
+<span class="fc" id="L276">            return kmap.get(n);</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

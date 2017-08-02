@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Config.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.helper</a> &gt; <span class="el_source">Config.java</span></div><h1>Config.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 IBM, DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.hyperledger.fabric.sdk.helper;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Level;
+
+/**
+ * Config allows for a global config of the toolkit. Central location for all
+ * toolkit configuration defaults. Has a local config file that can override any
+ * property defaults. Config file can be relocated via a system property
+ * &quot;org.hyperledger.fabric.sdk.configuration&quot;. Any property can be overridden
+ * with environment variable and then overridden
+ * with a java system property. Property hierarchy goes System property
+ * overrides environment variable which overrides config file for default values specified here.
+ */
+
+public class Config {
+<span class="fc" id="L36">    private static final Log logger = LogFactory.getLog(Config.class);</span>
+
+    private static final String DEFAULT_CONFIG = &quot;config.properties&quot;;
+    public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = &quot;org.hyperledger.fabric.sdk.configuration&quot;;
+    public static final String SECURITY_LEVEL = &quot;org.hyperledger.fabric.sdk.security_level&quot;;
+    public static final String HASH_ALGORITHM = &quot;org.hyperledger.fabric.sdk.hash_algorithm&quot;;
+    public static final String CACERTS = &quot;org.hyperledger.fabric.sdk.cacerts&quot;;
+    public static final String PROPOSAL_WAIT_TIME = &quot;org.hyperledger.fabric.sdk.proposal.wait.time&quot;;
+    public static final String CHANNEL_CONFIG_WAIT_TIME = &quot;org.hyperledger.fabric.sdk.channelconfig.wait_time&quot;;
+    public static final String ORDERER_RETRY_WAIT_TIME = &quot;org.hyperledger.fabric.sdk.orderer_retry.wait_time&quot;;
+    public static final String PROPOSAL_CONSISTENCY_VALIDATION = &quot;org.hyperledger.fabric.sdk.proposal.consistency_validation&quot;;
+    public static final String GENESISBLOCK_WAIT_TIME = &quot;org.hyperledger.fabric.sdk.channel.genesisblock_wait_time&quot;;
+    public static final String ASYMMETRIC_KEY_TYPE = &quot;org.hyperledger.fabric.sdk.crypto.asymmetric_key_type&quot;;
+    public static final String KEY_AGREEMENT_ALGORITHM = &quot;org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm&quot;;
+    public static final String SYMMETRIC_KEY_TYPE = &quot;org.hyperledger.fabric.sdk.crypto.symmetric_key_type&quot;;
+    public static final String SYMMETRIC_KEY_BYTE_COUNT = &quot;org.hyperledger.fabric.sdk.crypto.symmetric_key_byte_count&quot;;
+    public static final String SYMMETRIC_ALGORITHM = &quot;org.hyperledger.fabric.sdk.crypto.symmetric_algorithm&quot;;
+    public static final String MAC_KEY_BYTE_COUNT = &quot;org.hyperledger.fabric.sdk.crypto.mac_key_byte_count&quot;;
+    public static final String CERTIFICATE_FORMAT = &quot;org.hyperledger.fabric.sdk.crypto.certificate_format&quot;;
+    public static final String SIGNATURE_ALGORITHM = &quot;org.hyperledger.fabric.sdk.crypto.default_signature_algorithm&quot;;
+    public static final String MAX_LOG_STRING_LENGTH = &quot;org.hyperledger.fabric.sdk.log.stringlengthmax&quot;;
+    public static final String EXTRALOGLEVEL = &quot;org.hyperledger.fabric.sdk.log.extraloglevel&quot;;
+    public static final String LOGGERLEVEL = &quot;org.hyperledger.fabric.sdk.loglevel&quot;;  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
+    public static final String DIAGNOTISTIC_FILE_DIRECTORY = &quot;org.hyperledger.fabric.sdk.diagnosticFileDir&quot;; //ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR
+
+
+    private static Config config;
+<span class="fc" id="L63">    private static final Properties sdkProperties = new Properties();</span>
+
+<span class="fc" id="L65">    private Config() {</span>
+        File loadFile;
+        FileInputStream configProps;
+
+        try {
+<span class="fc" id="L70">            loadFile = new File(System.getProperty(ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION, DEFAULT_CONFIG))</span>
+<span class="fc" id="L71">                    .getAbsoluteFile();</span>
+<span class="fc" id="L72">            logger.debug(String.format(&quot;Loading configuration from %s and it is present: %b&quot;, loadFile.toString(),</span>
+<span class="fc" id="L73">                    loadFile.exists()));</span>
+<span class="fc" id="L74">            configProps = new FileInputStream(loadFile);</span>
+<span class="fc" id="L75">            sdkProperties.load(configProps);</span>
+
+<span class="nc" id="L77">        } catch (IOException e) {</span>
+<span class="nc" id="L78">            logger.warn(String.format(&quot;Failed to load any configuration from: %s. Using toolkit defaults&quot;,</span>
+                    DEFAULT_CONFIG));
+        } finally {
+
+            // Default values
+<span class="pc" id="L83">            defaultProperty(ASYMMETRIC_KEY_TYPE, &quot;EC&quot;);</span>
+<span class="pc" id="L84">            defaultProperty(KEY_AGREEMENT_ALGORITHM, &quot;ECDH&quot;);</span>
+<span class="pc" id="L85">            defaultProperty(SYMMETRIC_KEY_TYPE, &quot;AES&quot;);</span>
+<span class="pc" id="L86">            defaultProperty(SYMMETRIC_KEY_BYTE_COUNT, &quot;32&quot;);</span>
+<span class="pc" id="L87">            defaultProperty(SYMMETRIC_ALGORITHM, &quot;AES/CFB/NoPadding&quot;);</span>
+<span class="pc" id="L88">            defaultProperty(MAC_KEY_BYTE_COUNT, &quot;32&quot;);</span>
+<span class="pc" id="L89">            defaultProperty(CERTIFICATE_FORMAT, &quot;X.509&quot;);</span>
+<span class="pc" id="L90">            defaultProperty(SIGNATURE_ALGORITHM, &quot;SHA256withECDSA&quot;);</span>
+<span class="pc" id="L91">            defaultProperty(SECURITY_LEVEL, &quot;256&quot;);</span>
+<span class="pc" id="L92">            defaultProperty(HASH_ALGORITHM, &quot;SHA2&quot;);</span>
+<span class="pc" id="L93">            defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, &quot;true&quot;);</span>
+            // TODO remove this once we have implemented MSP and get the peer certs from the channel
+<span class="pc" id="L95">            defaultProperty(CACERTS, &quot;/genesisblock/peercacert.pem&quot;);</span>
+
+<span class="pc" id="L97">            defaultProperty(PROPOSAL_WAIT_TIME, &quot;20000&quot;);</span>
+<span class="pc" id="L98">            defaultProperty(GENESISBLOCK_WAIT_TIME, &quot;5000&quot;);</span>
+<span class="pc" id="L99">            defaultProperty(MAX_LOG_STRING_LENGTH, &quot;64&quot;);</span>
+<span class="pc" id="L100">            defaultProperty(EXTRALOGLEVEL, &quot;0&quot;);</span>
+<span class="pc" id="L101">            defaultProperty(LOGGERLEVEL, null);</span>
+<span class="pc" id="L102">            defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);</span>
+<span class="pc" id="L103">            defaultProperty(CHANNEL_CONFIG_WAIT_TIME, &quot;10000&quot;);</span>
+<span class="pc" id="L104">            defaultProperty(ORDERER_RETRY_WAIT_TIME, &quot;200&quot;);</span>
+
+
+<span class="pc" id="L107">            final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);</span>
+
+<span class="pc bpc" id="L109" title="4 of 6 branches missed.">            if (null != inLogLevel) {</span>
+
+<span class="pc" id="L111">                org.apache.log4j.Level setTo = null;</span>
+
+<span class="pc bpc" id="L113" title="51 of 66 branches missed.">                switch (inLogLevel) {</span>
+
+                    case &quot;TRACE&quot;:
+<span class="pc" id="L116">                        setTo = org.apache.log4j.Level.TRACE;</span>
+<span class="pc" id="L117">                        break;</span>
+
+                    case &quot;DEBUG&quot;:
+<span class="pc" id="L120">                        setTo = org.apache.log4j.Level.DEBUG;</span>
+<span class="pc" id="L121">                        break;</span>
+
+                    case &quot;INFO&quot;:
+<span class="pc" id="L124">                        setTo = Level.INFO;</span>
+<span class="pc" id="L125">                        break;</span>
+
+                    case &quot;WARN&quot;:
+<span class="pc" id="L128">                        setTo = Level.WARN;</span>
+<span class="pc" id="L129">                        break;</span>
+
+                    case &quot;ERROR&quot;:
+<span class="pc" id="L132">                        setTo = Level.ERROR;</span>
+<span class="pc" id="L133">                        break;</span>
+
+                    default:
+<span class="nc" id="L136">                        setTo = Level.INFO;</span>
+                        break;
+
+                }
+
+<span class="pc bpc" id="L141" title="5 of 6 branches missed.">                if (null != setTo) {</span>
+<span class="pc" id="L142">                    org.apache.log4j.Logger.getLogger(&quot;org.hyperledger.fabric&quot;).setLevel(setTo);</span>
+                }
+
+            }
+
+<span class="pc" id="L147">        }</span>
+
+<span class="fc" id="L149">    }</span>
+
+    /**
+     * getConfig return back singleton for SDK configuration.
+     *
+     * @return Global configuration
+     */
+    public static Config getConfig() {
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (null == config) {</span>
+<span class="fc" id="L158">            config = new Config();</span>
+        }
+<span class="fc" id="L160">        return config;</span>
+
+    }
+
+    /**
+     * getProperty return back property for the given value.
+     *
+     * @param property
+     * @return String value for the property
+     */
+    private String getProperty(String property) {
+
+<span class="fc" id="L172">        String ret = sdkProperties.getProperty(property);</span>
+
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if (null == ret) {</span>
+<span class="nc" id="L175">            logger.warn(String.format(&quot;No configuration value found for '%s'&quot;, property));</span>
+        }
+<span class="fc" id="L177">        return ret;</span>
+    }
+
+    private static void defaultProperty(String key, String value) {
+
+<span class="fc" id="L182">        String ret = System.getProperty(key);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (ret != null) {</span>
+<span class="fc" id="L184">            sdkProperties.put(key, ret);</span>
+        } else {
+<span class="fc" id="L186">            String envKey = key.toUpperCase().replaceAll(&quot;\\.&quot;, &quot;_&quot;);</span>
+<span class="fc" id="L187">            ret = System.getenv(envKey);</span>
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">            if (null != ret) {</span>
+<span class="nc" id="L189">                sdkProperties.put(key, ret);</span>
+            } else {
+<span class="fc bfc" id="L191" title="All 4 branches covered.">                if (null == sdkProperties.getProperty(key) &amp;&amp; value != null) {</span>
+<span class="fc" id="L192">                    sdkProperties.put(key, value);</span>
+                }
+
+            }
+
+        }
+<span class="fc" id="L198">    }</span>
+
+    /**
+     * Get the configured security level. The value determines the elliptic curve used to generate keys.
+     *
+     * @return the security level.
+     */
+    public int getSecurityLevel() {
+
+<span class="fc" id="L207">        return Integer.parseInt(getProperty(SECURITY_LEVEL));</span>
+
+    }
+
+    /**
+     * Get the name of the configured hash algorithm, used for digital signatures.
+     *
+     * @return the hash algorithm name.
+     */
+    public String getHashAlgorithm() {
+<span class="fc" id="L217">        return getProperty(HASH_ALGORITHM);</span>
+
+    }
+
+    public String[] getPeerCACerts() {
+<span class="fc" id="L222">        return getProperty(CACERTS).split(&quot;'&quot;);</span>
+    }
+
+    /**
+     * Get the timeout for a single proposal request to endorser.
+     *
+     * @return the timeout in milliseconds.
+     */
+    public long getProposalWaitTime() {
+<span class="fc" id="L231">        return Long.parseLong(getProperty(PROPOSAL_WAIT_TIME));</span>
+    }
+
+    /**
+     * Get the configured time to wait for genesis block.
+     *
+     * @return time in milliseconds.
+     */
+    public long getGenesisBlockWaitTime() {
+<span class="fc" id="L240">        return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));</span>
+    }
+
+    /**
+     * Time to wait for channel to be configured.
+     *
+     * @return
+     */
+    public long getChannelConfigWaitTime() {
+<span class="fc" id="L249">        return Long.parseLong(getProperty(CHANNEL_CONFIG_WAIT_TIME));</span>
+    }
+
+    /**
+     * Time to wait before retrying an operation.
+     *
+     * @return
+     */
+    public long getOrdererRetryWaitTime() {
+<span class="fc" id="L258">        return Long.parseLong(getProperty(ORDERER_RETRY_WAIT_TIME));</span>
+    }
+
+    public String getAsymmetricKeyType() {
+<span class="fc" id="L262">        return getProperty(ASYMMETRIC_KEY_TYPE);</span>
+    }
+
+    public String getKeyAgreementAlgorithm() {
+<span class="fc" id="L266">        return getProperty(KEY_AGREEMENT_ALGORITHM);</span>
+    }
+
+    public String getSymmetricKeyType() {
+<span class="fc" id="L270">        return getProperty(SYMMETRIC_KEY_TYPE);</span>
+    }
+
+    public int getSymmetricKeyByteCount() {
+<span class="fc" id="L274">        return Integer.parseInt(getProperty(SYMMETRIC_KEY_BYTE_COUNT));</span>
+    }
+
+    public String getSymmetricAlgorithm() {
+<span class="fc" id="L278">        return getProperty(SYMMETRIC_ALGORITHM);</span>
+    }
+
+    public int getMACKeyByteCount() {
+<span class="fc" id="L282">        return Integer.parseInt(getProperty(MAC_KEY_BYTE_COUNT));</span>
+    }
+
+    public String getCertificateFormat() {
+<span class="fc" id="L286">        return getProperty(CERTIFICATE_FORMAT);</span>
+    }
+
+    public String getSignatureAlgorithm() {
+<span class="fc" id="L290">        return getProperty(SIGNATURE_ALGORITHM);</span>
+    }
+
+    public int maxLogStringLength() {
+<span class="fc" id="L294">        return Integer.parseInt(getProperty(MAX_LOG_STRING_LENGTH));</span>
+    }
+
+    /**
+     * getProposalConsistencyValidation determine if validation of the proposals should
+     * be done before sending to the orderer.
+     *
+     * @return if true proposals will be checked they are consistent with each other before sending to the Orderer
+     */
+
+    public boolean getProposalConsistencyValidation() {
+<span class="fc" id="L305">        return Boolean.parseBoolean(getProperty(PROPOSAL_CONSISTENCY_VALIDATION));</span>
+
+    }
+
+<span class="fc" id="L309">    public int extraLogLevel = -1;</span>
+
+    public boolean extraLogLevel(int val) {
+<span class="fc bfc" id="L312" title="All 2 branches covered.">        if (extraLogLevel == -1) {</span>
+<span class="fc" id="L313">            extraLogLevel = Integer.parseInt(getProperty(EXTRALOGLEVEL));</span>
+        }
+
+<span class="fc bfc" id="L316" title="All 2 branches covered.">        return val &lt;= extraLogLevel;</span>
+
+    }
+
+<span class="fc" id="L320">    DiagnosticFileDumper diagnosticFileDumper = null;</span>
+
+    /**
+     * The directory where diagnostic dumps are to be place, null if none should be done.
+     *
+     * @return The directory where diagnostic dumps are to be place, null if none should be done.
+     */
+
+    public DiagnosticFileDumper getDiagnosticFileDumper() {
+
+<span class="nc bnc" id="L330" title="All 2 branches missed.">        if (diagnosticFileDumper != null) {</span>
+<span class="nc" id="L331">            return diagnosticFileDumper;</span>
+        }
+
+<span class="nc" id="L334">        String dd = sdkProperties.getProperty(DIAGNOTISTIC_FILE_DIRECTORY);</span>
+
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        if (dd != null) {</span>
+
+<span class="nc" id="L338">            diagnosticFileDumper = DiagnosticFileDumper.configInstance(new File(dd));</span>
+
+        }
+
+<span class="nc" id="L342">        return diagnosticFileDumper;</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

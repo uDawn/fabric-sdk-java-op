@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstallProposalRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">InstallProposalRequest.java</span></div><h1>InstallProposalRequest.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.io.File;
+import java.io.InputStream;
+
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+
+/**
+ * InstallProposalRequest.
+ */
+public class InstallProposalRequest extends TransactionRequest {
+
+<span class="nc" id="L27">    private File chaincodeSourceLocation = null;</span>
+<span class="nc" id="L28">    private InputStream chaincodeInputStream = null;</span>
+
+    InstallProposalRequest(User userContext) {
+<span class="nc" id="L31">        super(userContext);</span>
+<span class="nc" id="L32">    }</span>
+
+    public InputStream getChaincodeInputStream() {
+<span class="nc" id="L35">        return chaincodeInputStream;</span>
+    }
+
+    /**
+     * Chaincode input stream containing the actual chaincode. Only format supported is a tar zip compressed input of the source.
+     *
+     * @param chaincodeInputStream
+     * @throws InvalidArgumentException
+     */
+
+    public void setChaincodeInputStream(InputStream chaincodeInputStream) throws InvalidArgumentException {
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (chaincodeInputStream == null) {</span>
+<span class="nc" id="L47">            throw new InvalidArgumentException(&quot;Chaincode input stream may not be null.&quot;);</span>
+        }
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if (chaincodeSourceLocation != null) {</span>
+<span class="nc" id="L50">            throw new InvalidArgumentException(&quot;Error setting chaincode input stream. Chaincode source location already set. Only one or the other maybe set.&quot;);</span>
+        }
+<span class="nc" id="L52">        this.chaincodeInputStream = chaincodeInputStream;</span>
+<span class="nc" id="L53">    }</span>
+
+    public File getChaincodeSourceLocation() {
+<span class="nc" id="L56">        return chaincodeSourceLocation;</span>
+    }
+
+    /**
+     * The location of the chaincode.
+     *
+     * @param chaincodeSourceLocation
+     * @throws InvalidArgumentException
+     */
+    public void setChaincodeSourceLocation(File chaincodeSourceLocation) throws InvalidArgumentException {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (chaincodeSourceLocation == null) {</span>
+<span class="nc" id="L67">            throw new InvalidArgumentException(&quot;Chaincode source location may not be null.&quot;);</span>
+        }
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (chaincodeInputStream != null) {</span>
+<span class="nc" id="L70">            throw new InvalidArgumentException(&quot;Error setting chaincode location. Chaincode input stream already set. Only one or the other maybe set.&quot;);</span>
+        }
+
+<span class="nc" id="L73">        this.chaincodeSourceLocation = chaincodeSourceLocation;</span>
+<span class="nc" id="L74">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

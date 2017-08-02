@@ -1,0 +1,2905 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Channel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">Channel.java</span></div><h1>Channel.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.StatusRuntimeException;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.common.Common.BlockMetadata;
+import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
+import org.hyperledger.fabric.protos.common.Common.Envelope;
+import org.hyperledger.fabric.protos.common.Common.Header;
+import org.hyperledger.fabric.protos.common.Common.HeaderType;
+import org.hyperledger.fabric.protos.common.Common.LastConfig;
+import org.hyperledger.fabric.protos.common.Common.Metadata;
+import org.hyperledger.fabric.protos.common.Common.Payload;
+import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
+import org.hyperledger.fabric.protos.common.Common.Status;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigEnvelope;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigGroup;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigSignature;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigUpdateEnvelope;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigValue;
+import org.hyperledger.fabric.protos.common.Ledger;
+import org.hyperledger.fabric.protos.msp.MspConfig;
+import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
+import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekSpecified;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
+import org.hyperledger.fabric.protos.peer.FabricTransaction.ProcessedTransaction;
+import org.hyperledger.fabric.protos.peer.PeerEvents.Event.EventCase;
+import org.hyperledger.fabric.protos.peer.Query;
+import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
+import org.hyperledger.fabric.protos.peer.Query.ChaincodeQueryResponse;
+import org.hyperledger.fabric.protos.peer.Query.ChannelQueryResponse;
+import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.EventHubException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.PeerException;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
+import org.hyperledger.fabric.sdk.exception.TransactionEventException;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
+import org.hyperledger.fabric.sdk.helper.Utils;
+import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
+import org.hyperledger.fabric.sdk.transaction.QueryInstalledChaincodesBuilder;
+import org.hyperledger.fabric.sdk.transaction.QueryInstantiatedChaincodesBuilder;
+import org.hyperledger.fabric.sdk.transaction.QueryPeerChannelsBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
+import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.User.userContextCheck;
+import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getCurrentFabricTimestamp;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
+
+/**
+ * The class representing a channel with which the client SDK interacts.
+ * &lt;p&gt;
+ */
+public class Channel {
+<span class="fc" id="L115">    private static final Log logger = LogFactory.getLog(Channel.class);</span>
+<span class="fc" id="L116">    private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();</span>
+<span class="fc" id="L117">    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();</span>
+
+<span class="fc" id="L119">    private static final Config config = Config.getConfig();</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL</span>
+<span class="pc" id="L121">            ? config.getDiagnosticFileDumper() : null;</span>
+    private static final String SYSTEM_CHANNEL_NAME = &quot;&quot;;
+
+<span class="fc" id="L124">    private static final long ORDERER_RETRY_WAIT_TIME = config.getOrdererRetryWaitTime();</span>
+<span class="fc" id="L125">    private static final long CHANNEL_CONFIG_WAIT_TIME = config.getChannelConfigWaitTime();</span>
+
+    // Name of the channel is only meaningful to the client
+    private final String name;
+
+    // The peers on this channel to which the client can connect
+<span class="fc" id="L131">    private final Collection&lt;Peer&gt; peers = new Vector&lt;&gt;();</span>
+
+    // Temporary variables to control how long to wait for deploy and invoke to complete before
+    // emitting events.  This will be removed when the SDK is able to receive events from the
+<span class="fc" id="L135">    private int deployWaitTime = 20;</span>
+<span class="fc" id="L136">    private int transactionWaitTime = 5;</span>
+
+    // contains the anchor peers parsed from the channel's configBlock
+//    private Set&lt;Anchor&gt; anchorPeers;
+
+    // The crypto primitives object
+    //   private CryptoSuite cryptoSuite;
+<span class="fc" id="L143">    private final Collection&lt;Orderer&gt; orderers = new LinkedList&lt;&gt;();</span>
+    HFClient client;
+<span class="fc" id="L145">    private boolean initialized = false;</span>
+<span class="fc" id="L146">    private boolean shutdown = false;</span>
+
+    /**
+     * Get all Event Hubs on this channel.
+     *
+     * @return Event Hubs
+     */
+    public Collection&lt;EventHub&gt; getEventHubs() {
+<span class="fc" id="L154">        return Collections.unmodifiableCollection(eventHubs);</span>
+    }
+
+<span class="fc" id="L157">    private final Collection&lt;EventHub&gt; eventHubs = new LinkedList&lt;&gt;();</span>
+    private ExecutorService executorService;
+    private Block genesisBlock;
+    private final boolean systemChannel;
+
+    private Channel(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[][] signers) throws InvalidArgumentException, TransactionException {
+<span class="nc" id="L163">        this(name, hfClient, false);</span>
+
+<span class="nc" id="L165">        logger.debug(format(&quot;Creating new channel %s on the Fabric&quot;, name));</span>
+
+<span class="nc" id="L167">        Channel ordererChannel = orderer.getChannel();</span>
+
+        try {
+<span class="nc" id="L170">            addOrderer(orderer);</span>
+
+            //-----------------------------------------
+<span class="nc" id="L173">            Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());</span>
+
+<span class="nc" id="L175">            final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());</span>
+<span class="nc" id="L176">            final ChannelHeader ccChannelHeader = ChannelHeader.parseFrom(ccPayload.getHeader().getChannelHeader());</span>
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            if (ccChannelHeader.getType() != HeaderType.CONFIG_UPDATE.getNumber()) {</span>
+<span class="nc" id="L179">                throw new InvalidArgumentException(format(&quot;Creating channel; %s expected config block type %s, but got: %s&quot;,</span>
+                        name,
+<span class="nc" id="L181">                        HeaderType.CONFIG_UPDATE.name(),</span>
+<span class="nc" id="L182">                        HeaderType.forNumber(ccChannelHeader.getType())));</span>
+            }
+
+<span class="nc bnc" id="L185" title="All 2 branches missed.">            if (!name.equals(ccChannelHeader.getChannelId())) {</span>
+
+<span class="nc" id="L187">                throw new InvalidArgumentException(format(&quot;Expected config block for channel: %s, but got: %s&quot;, name,</span>
+<span class="nc" id="L188">                        ccChannelHeader.getChannelId()));</span>
+            }
+
+<span class="nc" id="L191">            final ConfigUpdateEnvelope configUpdateEnv = ConfigUpdateEnvelope.parseFrom(ccPayload.getData());</span>
+<span class="nc" id="L192">            ByteString configUpdate = configUpdateEnv.getConfigUpdate();</span>
+
+<span class="nc" id="L194">            sendUpdateChannel(configUpdate.toByteArray(), signers, orderer);</span>
+            //         final ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = configUpdateEnv.toBuilder();
+
+            //---------------------------------------
+
+            //          sendUpdateChannel(channelConfiguration, signers, orderer);
+
+<span class="nc" id="L201">            getGenesisBlock(orderer); // get Genesis block to make sure channel was created.</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">            if (genesisBlock == null) {</span>
+<span class="nc" id="L203">                throw new TransactionException(format(&quot;New channel %s error. Genesis bock returned null&quot;, name));</span>
+            }
+
+<span class="nc" id="L206">            logger.debug(format(&quot;Created new channel %s on the Fabric done.&quot;, name));</span>
+<span class="nc" id="L207">        } catch (TransactionException e) {</span>
+
+<span class="nc" id="L209">            orderer.unsetChannel();</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">            if (null != ordererChannel) {</span>
+<span class="nc" id="L211">                orderer.setChannel(ordererChannel);</span>
+            }
+
+<span class="nc" id="L214">            logger.error(format(&quot;Channel %s error: %s&quot;, name, e.getMessage()), e);</span>
+<span class="nc" id="L215">            throw e;</span>
+<span class="nc" id="L216">        } catch (Exception e) {</span>
+<span class="nc" id="L217">            orderer.unsetChannel();</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">            if (null != ordererChannel) {</span>
+<span class="nc" id="L219">                orderer.setChannel(ordererChannel);</span>
+            }
+<span class="nc" id="L221">            String msg = format(&quot;Channel %s error: %s&quot;, name, e.getMessage());</span>
+
+<span class="nc" id="L223">            logger.error(msg, e);</span>
+<span class="nc" id="L224">            throw new TransactionException(msg, e);</span>
+<span class="nc" id="L225">        }</span>
+
+<span class="nc" id="L227">    }</span>
+
+    /**
+     * Update channel with specified channel configuration
+     *
+     * @param updateChannelConfiguration Updated Channel configuration
+     * @param signers                    signers
+     * @throws TransactionException
+     * @throws InvalidArgumentException
+     */
+
+    public void updateChannelConfiguration(UpdateChannelConfiguration updateChannelConfiguration, byte[]... signers) throws TransactionException, InvalidArgumentException {
+
+<span class="nc" id="L240">        updateChannelConfiguration(updateChannelConfiguration, getRandomOrderer(), signers);</span>
+
+<span class="nc" id="L242">    }</span>
+
+    /**
+     * Update channel with specified channel configuration
+     *
+     * @param updateChannelConfiguration Channel configuration
+     * @param signers                    signers
+     * @param orderer                    The specific orderer to use.
+     * @throws TransactionException
+     * @throws InvalidArgumentException
+     */
+
+    public void updateChannelConfiguration(UpdateChannelConfiguration updateChannelConfiguration, Orderer orderer, byte[]... signers) throws TransactionException, InvalidArgumentException {
+
+<span class="nc" id="L256">        checkChannelState();</span>
+
+<span class="nc" id="L258">        checkOrderer(orderer);</span>
+
+        try {
+<span class="nc" id="L261">            final long startLastConfigIndex = getLastConfigIndex(orderer);</span>
+
+<span class="nc" id="L263">            sendUpdateChannel(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes(), signers, orderer);</span>
+
+<span class="nc" id="L265">            long currentLastConfigIndex = -1;</span>
+<span class="nc" id="L266">            final long nanoTimeStart = System.nanoTime();</span>
+
+            //Try to wait to see the channel got updated but don't fail if we don't see it.
+            do {
+<span class="nc" id="L270">                currentLastConfigIndex = getLastConfigIndex(orderer);</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                if (currentLastConfigIndex == startLastConfigIndex) {</span>
+
+<span class="nc" id="L273">                    final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);</span>
+
+<span class="nc bnc" id="L275" title="All 2 branches missed.">                    if (duration &gt; CHANNEL_CONFIG_WAIT_TIME) {</span>
+<span class="nc" id="L276">                        logger.warn(format(&quot;Channel %s did not get updated last config after %d ms&quot;, name, duration));</span>
+                        //waited long enough ..
+<span class="nc" id="L278">                        currentLastConfigIndex = startLastConfigIndex; // just bail don't throw exception.</span>
+                    } else {
+
+                        try {
+<span class="nc" id="L282">                            Thread.sleep(ORDERER_RETRY_WAIT_TIME); //try again sleep</span>
+<span class="nc" id="L283">                        } catch (InterruptedException e) {</span>
+<span class="nc" id="L284">                            TransactionException te = new TransactionException(&quot;update channel thread Sleep&quot;, e);</span>
+<span class="nc" id="L285">                            logger.warn(te.getMessage(), te);</span>
+<span class="nc" id="L286">                        }</span>
+                    }
+
+                }
+
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            } while (currentLastConfigIndex == startLastConfigIndex);</span>
+
+<span class="nc" id="L293">        } catch (TransactionException e) {</span>
+
+<span class="nc" id="L295">            logger.error(format(&quot;Channel %s error: %s&quot;, name, e.getMessage()), e);</span>
+<span class="nc" id="L296">            throw e;</span>
+<span class="nc" id="L297">        } catch (Exception e) {</span>
+<span class="nc" id="L298">            String msg = format(&quot;Channel %s error: %s&quot;, name, e.getMessage());</span>
+
+<span class="nc" id="L300">            logger.error(msg, e);</span>
+<span class="nc" id="L301">            throw new TransactionException(msg, e);</span>
+<span class="nc" id="L302">        }</span>
+
+<span class="nc" id="L304">    }</span>
+
+    private void sendUpdateChannel(byte[] configupdate, byte[][] signers, Orderer orderer) throws TransactionException, InvalidArgumentException {
+
+<span class="nc" id="L308">        logger.debug(format(&quot;Channel %s sendUpdateChannel&quot;, name));</span>
+<span class="nc" id="L309">        checkOrderer(orderer);</span>
+
+        try {
+
+<span class="nc" id="L313">            final long nanoTimeStart = System.nanoTime();</span>
+<span class="nc" id="L314">            int statusCode = 0;</span>
+
+            do {
+
+                //Make sure we have fresh transaction context for each try just to be safe.
+<span class="nc" id="L319">                TransactionContext transactionContext = getTransactionContext();</span>
+
+<span class="nc" id="L321">                ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = ConfigUpdateEnvelope.newBuilder();</span>
+
+<span class="nc" id="L323">                configUpdateEnvBuilder.setConfigUpdate(ByteString.copyFrom(configupdate));</span>
+
+<span class="nc bnc" id="L325" title="All 2 branches missed.">                for (byte[] signer : signers) {</span>
+
+<span class="nc" id="L327">                    configUpdateEnvBuilder.addSignatures(</span>
+<span class="nc" id="L328">                            ConfigSignature.parseFrom(signer));</span>
+
+                }
+
+                //--------------
+                // Construct Payload Envelope.
+
+<span class="nc" id="L335">                final ByteString sigHeaderByteString = getSignatureHeaderAsByteString(transactionContext);</span>
+
+<span class="nc" id="L337">                final ChannelHeader payloadChannelHeader = ProtoUtils.createChannelHeader(HeaderType.CONFIG_UPDATE,</span>
+<span class="nc" id="L338">                        transactionContext.getTxID(), name, transactionContext.getEpoch(), transactionContext.getFabricTimestamp(), null);</span>
+
+<span class="nc" id="L340">                final Header payloadHeader = Header.newBuilder().setChannelHeader(payloadChannelHeader.toByteString())</span>
+<span class="nc" id="L341">                        .setSignatureHeader(sigHeaderByteString).build();</span>
+
+<span class="nc" id="L343">                final ByteString payloadByteString = Payload.newBuilder()</span>
+<span class="nc" id="L344">                        .setHeader(payloadHeader)</span>
+<span class="nc" id="L345">                        .setData(configUpdateEnvBuilder.build().toByteString())</span>
+<span class="nc" id="L346">                        .build().toByteString();</span>
+
+<span class="nc" id="L348">                ByteString payloadSignature = transactionContext.signByteStrings(payloadByteString);</span>
+
+<span class="nc" id="L350">                Envelope payloadEnv = Envelope.newBuilder()</span>
+<span class="nc" id="L351">                        .setSignature(payloadSignature)</span>
+<span class="nc" id="L352">                        .setPayload(payloadByteString).build();</span>
+
+<span class="nc" id="L354">                BroadcastResponse trxResult = orderer.sendTransaction(payloadEnv);</span>
+
+<span class="nc" id="L356">                statusCode = trxResult.getStatusValue();</span>
+
+<span class="nc" id="L358">                logger.debug(format(&quot;Channel %s sendUpdateChannel %d&quot;, name, statusCode));</span>
+<span class="nc bnc" id="L359" title="All 4 branches missed.">                if (statusCode == 404 || statusCode == 503) {</span>
+                    // these we can retry..
+<span class="nc" id="L361">                    final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);</span>
+
+<span class="nc bnc" id="L363" title="All 2 branches missed.">                    if (duration &gt; CHANNEL_CONFIG_WAIT_TIME) {</span>
+                        //waited long enough .. throw an exception
+<span class="nc" id="L365">                        throw new TransactionException(format(&quot;Channel %s update error timed out after %d ms. Status value %d. Status %s&quot;, name,</span>
+<span class="nc" id="L366">                                duration, statusCode, trxResult.getStatus().name()));</span>
+                    }
+
+                    try {
+<span class="nc" id="L370">                        Thread.sleep(ORDERER_RETRY_WAIT_TIME); //try again sleep</span>
+<span class="nc" id="L371">                    } catch (InterruptedException e) {</span>
+<span class="nc" id="L372">                        TransactionException te = new TransactionException(&quot;update thread Sleep&quot;, e);</span>
+<span class="nc" id="L373">                        logger.warn(te.getMessage(), te);</span>
+<span class="nc" id="L374">                    }</span>
+
+<span class="nc bnc" id="L376" title="All 2 branches missed.">                } else if (200 != statusCode) {</span>
+                    // Can't retry.
+<span class="nc" id="L378">                    throw new TransactionException(format(&quot;New channel %s error. StatusValue %d. Status %s&quot;, name,</span>
+<span class="nc" id="L379">                            statusCode, &quot;&quot; + trxResult.getStatus()));</span>
+                }
+
+<span class="nc bnc" id="L382" title="All 2 branches missed.">            } while (200 != statusCode); // try again</span>
+
+<span class="nc" id="L384">        } catch (TransactionException e) {</span>
+
+<span class="nc" id="L386">            logger.error(format(&quot;Channel %s error: %s&quot;, name, e.getMessage()), e);</span>
+<span class="nc" id="L387">            throw e;</span>
+<span class="nc" id="L388">        } catch (Exception e) {</span>
+<span class="nc" id="L389">            String msg = format(&quot;Channel %s error: %s&quot;, name, e.getMessage());</span>
+
+<span class="nc" id="L391">            logger.error(msg, e);</span>
+<span class="nc" id="L392">            throw new TransactionException(msg, e);</span>
+<span class="nc" id="L393">        }</span>
+
+<span class="nc" id="L395">    }</span>
+
+    Enrollment getEnrollment() {
+<span class="nc" id="L398">        return client.getUserContext().getEnrollment();</span>
+    }
+
+    /**
+     * For requests that are not targeted for a specific channel.
+     * User's can not directly create this channel.
+     *
+     * @param client
+     * @return a new system channel.
+     * @throws InvalidArgumentException
+     */
+
+    static Channel newSystemChannel(HFClient client) throws InvalidArgumentException {
+<span class="fc" id="L411">        return new Channel(SYSTEM_CHANNEL_NAME, client, true);</span>
+    }
+
+    public boolean isInitialized() {
+<span class="fc" id="L415">        return initialized;</span>
+    }
+
+    Channel(String name, HFClient client) throws InvalidArgumentException {
+<span class="fc" id="L419">        this(name, client, false);</span>
+<span class="fc" id="L420">    }</span>
+
+    /**
+     * @param name
+     * @param client
+     * @throws InvalidArgumentException
+     */
+
+<span class="fc" id="L428">    private Channel(String name, HFClient client, final boolean systemChannel) throws InvalidArgumentException {</span>
+
+<span class="fc" id="L430">        this.systemChannel = systemChannel;</span>
+
+<span class="fc bfc" id="L432" title="All 2 branches covered.">        if (systemChannel) {</span>
+<span class="fc" id="L433">            name = SYSTEM_CHANNEL_NAME; //It's special !</span>
+<span class="fc" id="L434">            initialized = true;</span>
+        } else {
+<span class="fc bfc" id="L436" title="All 2 branches covered.">            if (isNullOrEmpty(name)) {</span>
+<span class="fc" id="L437">                throw new InvalidArgumentException(&quot;Channel name is invalid can not be null or empty.&quot;);</span>
+            }
+        }
+
+<span class="fc bfc" id="L441" title="All 2 branches covered.">        if (null == client) {</span>
+<span class="fc" id="L442">            throw new InvalidArgumentException(&quot;Channel client is invalid can not be null.&quot;);</span>
+        }
+<span class="fc" id="L444">        this.name = name;</span>
+<span class="fc" id="L445">        this.client = client;</span>
+<span class="fc" id="L446">        this.executorService = client.getExecutorService();</span>
+
+<span class="fc bfc" id="L448" title="All 2 branches covered.">        logger.debug(format(&quot;Creating channel: %s, client context %s&quot;, isSystemChannel() ? &quot;SYSTEM_CHANNEL&quot; : name, client.getUserContext().getName()));</span>
+
+<span class="fc" id="L450">    }</span>
+
+    /**
+     * Get the channel name
+     *
+     * @return The name of the channel
+     */
+    public String getName() {
+<span class="fc" id="L458">        return this.name;</span>
+    }
+
+    /**
+     * Add a peer to the channel
+     *
+     * @param peer The Peer to add.
+     * @return Channel The current channel added.
+     * @throws InvalidArgumentException
+     */
+    public Channel addPeer(Peer peer) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L470" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L471">            throw new InvalidArgumentException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+
+<span class="fc bfc" id="L474" title="All 2 branches covered.">        if (null == peer) {</span>
+<span class="fc" id="L475">            throw new InvalidArgumentException(&quot;Peer is invalid can not be null.&quot;);</span>
+        }
+
+<span class="fc" id="L478">        peer.setChannel(this);</span>
+
+<span class="fc" id="L480">        peers.add(peer);</span>
+
+<span class="fc" id="L482">        return this;</span>
+    }
+
+    public Channel joinPeer(Peer peer) throws ProposalException {
+
+<span class="fc" id="L487">        logger.debug(format(&quot;Channel %s joining peer %s, url: %s&quot;, name, peer.getName(), peer.getUrl()));</span>
+
+<span class="fc bfc" id="L489" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L490">            throw new ProposalException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+
+<span class="fc" id="L493">        Channel peerChannel = peer.getChannel();</span>
+<span class="pc bpc" id="L494" title="1 of 4 branches missed.">        if (null != peerChannel &amp;&amp; peerChannel != this) {</span>
+<span class="fc" id="L495">            throw new ProposalException(format(&quot;Can not add peer %s to channel %s because it already belongs to channel %s.&quot;, peer.getName(), name, peerChannel.getName()));</span>
+
+        }
+
+<span class="pc bpc" id="L499" title="2 of 4 branches missed.">        if (genesisBlock == null &amp;&amp; orderers.isEmpty()) {</span>
+<span class="fc" id="L500">            ProposalException e = new ProposalException(&quot;Channel missing genesis block and no orderers configured&quot;);</span>
+<span class="fc" id="L501">            logger.error(e.getMessage(), e);</span>
+        }
+        try {
+
+<span class="nc" id="L505">            genesisBlock = getGenesisBlock(getRandomOrderer());</span>
+<span class="nc" id="L506">            logger.debug(format(&quot;Channel %s got genesis block&quot;, name));</span>
+
+<span class="nc" id="L508">            final Channel systemChannel = newSystemChannel(client); //channel is not really created and this is targeted to system channel</span>
+
+<span class="nc" id="L510">            TransactionContext transactionContext = systemChannel.getTransactionContext();</span>
+
+<span class="nc" id="L512">            FabricProposal.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()</span>
+<span class="nc" id="L513">                    .context(transactionContext)</span>
+<span class="nc" id="L514">                    .genesisBlock(genesisBlock)</span>
+<span class="nc" id="L515">                    .build();</span>
+
+<span class="nc" id="L517">            logger.debug(&quot;Getting signed proposal.&quot;);</span>
+<span class="nc" id="L518">            SignedProposal signedProposal = getSignedProposal(transactionContext, joinProposal);</span>
+<span class="nc" id="L519">            logger.debug(&quot;Got signed proposal.&quot;);</span>
+
+<span class="nc" id="L521">            addPeer(peer); //need to add peer.</span>
+
+<span class="nc" id="L523">            Collection&lt;ProposalResponse&gt; resp = sendProposalToPeers(new ArrayList&lt;&gt;(Collections.singletonList(peer)),</span>
+                    signedProposal, transactionContext);
+
+<span class="nc" id="L526">            ProposalResponse pro = resp.iterator().next();</span>
+
+<span class="nc bnc" id="L528" title="All 2 branches missed.">            if (pro.getStatus() == ProposalResponse.Status.SUCCESS) {</span>
+<span class="nc" id="L529">                logger.info(format(&quot;Peer %s joined into channel %s&quot;, peer.getName(), name));</span>
+            } else {
+<span class="nc" id="L531">                peers.remove(peer);</span>
+<span class="nc" id="L532">                peer.unsetChannel();</span>
+<span class="nc" id="L533">                throw new ProposalException(format(&quot;Join peer to channel %s failed.  Status %s, details: %s&quot;,</span>
+<span class="nc" id="L534">                        name, pro.getStatus().toString(), pro.getMessage()));</span>
+
+            }
+<span class="nc" id="L537">        } catch (ProposalException e) {</span>
+<span class="nc" id="L538">            peers.remove(peer);</span>
+<span class="nc" id="L539">            peer.unsetChannel();</span>
+<span class="nc" id="L540">            logger.error(e);</span>
+<span class="nc" id="L541">            throw e;</span>
+<span class="fc" id="L542">        } catch (Exception e) {</span>
+<span class="fc" id="L543">            peers.remove(peer);</span>
+<span class="fc" id="L544">            peer.unsetChannel();</span>
+<span class="fc" id="L545">            logger.error(e);</span>
+<span class="fc" id="L546">            throw new ProposalException(e.getMessage(), e);</span>
+<span class="nc" id="L547">        }</span>
+
+<span class="nc" id="L549">        return this;</span>
+    }
+
+    /**
+     * Add an Orderer to this channel.
+     *
+     * @param orderer the orderer to add.
+     * @return this channel.
+     * @throws InvalidArgumentException
+     */
+
+    public Channel addOrderer(Orderer orderer) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L562" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L563">            throw new InvalidArgumentException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+
+<span class="fc bfc" id="L566" title="All 2 branches covered.">        if (null == orderer) {</span>
+<span class="fc" id="L567">            throw new InvalidArgumentException(&quot;Orderer is invalid can not be null.&quot;);</span>
+        }
+
+<span class="fc" id="L570">        logger.debug(format(&quot;Channel %s adding orderer%s, url: %s&quot;, name, orderer.getName(), orderer.getUrl()));</span>
+
+<span class="fc" id="L572">        orderer.setChannel(this);</span>
+<span class="fc" id="L573">        orderers.add(orderer);</span>
+<span class="fc" id="L574">        return this;</span>
+    }
+
+    /**
+     * Add an Event Hub to this channel.
+     *
+     * @param eventHub
+     * @return this channel
+     * @throws InvalidArgumentException
+     */
+
+    public Channel addEventHub(EventHub eventHub) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L587" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L588">            throw new InvalidArgumentException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+<span class="pc bpc" id="L590" title="1 of 2 branches missed.">        if (null == eventHub) {</span>
+<span class="fc" id="L591">            throw new InvalidArgumentException(&quot;EventHub is invalid can not be null.&quot;);</span>
+        }
+
+<span class="nc" id="L594">        logger.debug(format(&quot;Channel %s adding event hub %s, url: %s&quot;, name, eventHub.getName(), eventHub.getUrl()));</span>
+<span class="nc" id="L595">        eventHub.setChannel(this);</span>
+<span class="nc" id="L596">        eventHub.setEventQue(channelEventQue);</span>
+<span class="nc" id="L597">        eventHubs.add(eventHub);</span>
+<span class="nc" id="L598">        return this;</span>
+
+    }
+
+    /**
+     * Get the peers for this channel.
+     *
+     * @return the peers.
+     */
+    public Collection&lt;Peer&gt; getPeers() {
+<span class="fc" id="L608">        return Collections.unmodifiableCollection(peers);</span>
+    }
+
+    /**
+     * Get the deploy wait time in seconds.
+     *
+     * @return number of seconds.
+     */
+    public int getDeployWaitTime() {
+<span class="nc" id="L617">        return deployWaitTime;</span>
+    }
+
+    /**
+     * Set the deploy wait time in seconds.
+     *
+     * @param waitTime Deploy wait time
+     */
+    public void setDeployWaitTime(int waitTime) {
+<span class="nc" id="L626">        this.deployWaitTime = waitTime;</span>
+<span class="nc" id="L627">    }</span>
+
+    /**
+     * Get the transaction wait time in seconds
+     *
+     * @return transaction wait time
+     */
+    public int getTransactionWaitTime() {
+<span class="nc" id="L635">        return this.transactionWaitTime;</span>
+    }
+
+    /**
+     * Set the transaction wait time in seconds.
+     *
+     * @param waitTime Invoke wait time
+     */
+    public void setTransactionWaitTime(int waitTime) {
+<span class="nc" id="L644">        logger.trace(&quot;setTransactionWaitTime is:&quot; + waitTime);</span>
+<span class="nc" id="L645">        transactionWaitTime = waitTime;</span>
+<span class="nc" id="L646">    }</span>
+
+    /**
+     * Initialize the Channel.  Starts the channel. event hubs will connect.
+     *
+     * @return this channel.
+     * @throws InvalidArgumentException
+     * @throws TransactionException
+     */
+
+    public Channel initialize() throws InvalidArgumentException, TransactionException {
+
+<span class="fc" id="L658">        logger.debug(format(&quot;Channel %s initialize shutdown %b&quot;, name, shutdown));</span>
+
+<span class="fc bfc" id="L660" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L661">            throw new InvalidArgumentException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+
+<span class="fc bfc" id="L664" title="All 2 branches covered.">        if (isNullOrEmpty(name)) {</span>
+
+<span class="fc" id="L666">            throw new InvalidArgumentException(&quot;Can not initialize channel without a valid name.&quot;);</span>
+
+        }
+<span class="fc bfc" id="L669" title="All 2 branches covered.">        if (client == null) {</span>
+<span class="fc" id="L670">            throw new InvalidArgumentException(&quot;Can not initialize channel without a client object.&quot;);</span>
+        }
+
+<span class="fc" id="L673">        userContextCheck(client.getUserContext());</span>
+
+        try {
+<span class="fc" id="L676">            parseConfigBlock(); // Parse config block for this channel to get it's information.</span>
+
+<span class="fc" id="L678">            loadCACertificates();  // put all MSP certs into cryptoSuite</span>
+
+<span class="fc" id="L680">            startEventQue(); //Run the event for event messages from event hubs.</span>
+<span class="fc" id="L681">            logger.debug(format(&quot;Eventque started %s&quot;, &quot;&quot; + eventQueueThread));</span>
+
+<span class="pc bpc" id="L683" title="1 of 2 branches missed.">            for (EventHub eh : eventHubs) { //Connect all event hubs</span>
+<span class="nc" id="L684">                eh.connect(getTransactionContext());</span>
+<span class="nc" id="L685">            }</span>
+
+<span class="fc" id="L687">            logger.debug(format(&quot;%d eventhubs initialized&quot;, getEventHubs().size()));</span>
+
+<span class="fc" id="L689">            registerTransactionListenerProcessor(); //Manage transactions.</span>
+<span class="fc" id="L690">            logger.debug(format(&quot;Channel %s registerTransactionListenerProcessor completed&quot;, name));</span>
+
+<span class="fc" id="L692">            this.initialized = true;</span>
+
+<span class="fc" id="L694">            logger.debug(format(&quot;Channel %s initialized&quot;, name));</span>
+
+<span class="fc" id="L696">            return this;</span>
+<span class="nc" id="L697">        } catch (TransactionException e) {</span>
+<span class="nc" id="L698">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L699">            throw e;</span>
+
+<span class="nc" id="L701">        } catch (Exception e) {</span>
+<span class="nc" id="L702">            TransactionException exp = new TransactionException(e);</span>
+<span class="nc" id="L703">            logger.error(exp.getMessage(), exp);</span>
+<span class="nc" id="L704">            throw exp;</span>
+        }
+
+    }
+
+    /**
+     * load the peer organizations CA certificates into the channel's trust store so that we
+     * can verify signatures from peer messages
+     *
+     * @throws InvalidArgumentException
+     * @throws CryptoException
+     */
+    private void loadCACertificates() throws InvalidArgumentException, CryptoException {
+<span class="fc" id="L717">        logger.debug(format(&quot;Channel %s loadCACertificates&quot;, name));</span>
+
+<span class="pc bpc" id="L719" title="1 of 2 branches missed.">        if (msps == null) {</span>
+<span class="nc" id="L720">            throw new InvalidArgumentException(&quot;Unable to load CA certificates. Channel &quot; + name + &quot; does not have any MSPs.&quot;);</span>
+        }
+
+        List&lt;byte[]&gt; certList;
+<span class="pc bpc" id="L724" title="1 of 2 branches missed.">        for (MSP msp : msps.values()) {</span>
+<span class="nc" id="L725">            logger.debug(&quot;loading certificates for MSP : &quot; + msp.getID());</span>
+<span class="nc" id="L726">            certList = Arrays.asList(msp.getRootCerts());</span>
+<span class="nc bnc" id="L727" title="All 2 branches missed.">            if (certList.size() &gt; 0) {</span>
+<span class="nc" id="L728">                client.getCryptoSuite().loadCACertificatesAsBytes(certList);</span>
+            }
+<span class="nc" id="L730">            certList = Arrays.asList(msp.getIntermediateCerts());</span>
+<span class="nc bnc" id="L731" title="All 2 branches missed.">            if (certList.size() &gt; 0) {</span>
+<span class="nc" id="L732">                client.getCryptoSuite().loadCACertificatesAsBytes(certList);</span>
+            }
+            // not adding admin certs. Admin certs should be signed by the CA
+<span class="nc" id="L735">        }</span>
+<span class="fc" id="L736">        logger.debug(format(&quot;Channel %s loadCACertificates completed &quot;, name));</span>
+<span class="fc" id="L737">    }</span>
+
+    private Block getGenesisBlock(Orderer orderer) throws TransactionException {
+        try {
+<span class="nc bnc" id="L741" title="All 2 branches missed.">            if (genesisBlock != null) {</span>
+<span class="nc" id="L742">                logger.debug(format(&quot;Channel %s getGenesisBlock already present&quot;, name));</span>
+
+            } else {
+
+<span class="nc" id="L746">                final long start = System.currentTimeMillis();</span>
+
+<span class="nc" id="L748">                SeekSpecified seekSpecified = SeekSpecified.newBuilder()</span>
+<span class="nc" id="L749">                        .setNumber(0)</span>
+<span class="nc" id="L750">                        .build();</span>
+<span class="nc" id="L751">                SeekPosition seekPosition = SeekPosition.newBuilder()</span>
+<span class="nc" id="L752">                        .setSpecified(seekSpecified)</span>
+<span class="nc" id="L753">                        .build();</span>
+
+<span class="nc" id="L755">                SeekSpecified seekStopSpecified = SeekSpecified.newBuilder()</span>
+<span class="nc" id="L756">                        .setNumber(0)</span>
+<span class="nc" id="L757">                        .build();</span>
+
+<span class="nc" id="L759">                SeekPosition seekStopPosition = SeekPosition.newBuilder()</span>
+<span class="nc" id="L760">                        .setSpecified(seekStopSpecified)</span>
+<span class="nc" id="L761">                        .build();</span>
+
+<span class="nc" id="L763">                SeekInfo seekInfo = SeekInfo.newBuilder()</span>
+<span class="nc" id="L764">                        .setStart(seekPosition)</span>
+<span class="nc" id="L765">                        .setStop(seekStopPosition)</span>
+<span class="nc" id="L766">                        .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)</span>
+<span class="nc" id="L767">                        .build();</span>
+
+<span class="nc" id="L769">                ArrayList&lt;DeliverResponse&gt; deliverResponses = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L771">                seekBlock(seekInfo, deliverResponses, orderer);</span>
+
+<span class="nc" id="L773">                DeliverResponse blockresp = deliverResponses.get(1);</span>
+<span class="nc" id="L774">                Block configBlock = blockresp.getBlock();</span>
+<span class="nc bnc" id="L775" title="All 2 branches missed.">                if (configBlock == null) {</span>
+<span class="nc" id="L776">                    throw new TransactionException(format(&quot;In getGenesisBlock newest block for channel %s fetch bad deliver returned null:&quot;, name));</span>
+                }
+
+<span class="nc" id="L779">                int dataCount = configBlock.getData().getDataCount();</span>
+<span class="nc bnc" id="L780" title="All 2 branches missed.">                if (dataCount &lt; 1) {</span>
+<span class="nc" id="L781">                    throw new TransactionException(format(&quot;In getGenesisBlock bad config block data count %d&quot;, dataCount));</span>
+                }
+
+<span class="nc" id="L784">                genesisBlock = blockresp.getBlock();</span>
+
+            }
+<span class="nc" id="L787">        } catch (TransactionException e) {</span>
+<span class="nc" id="L788">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L789">            throw e;</span>
+<span class="nc" id="L790">        } catch (Exception e) {</span>
+<span class="nc" id="L791">            TransactionException exp = new TransactionException(&quot;getGenesisBlock &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L792">            logger.error(exp.getMessage(), exp);</span>
+<span class="nc" id="L793">            throw exp;</span>
+<span class="nc" id="L794">        }</span>
+
+<span class="nc bnc" id="L796" title="All 2 branches missed.">        if (genesisBlock == null) { //make sure it was really set.</span>
+<span class="nc" id="L797">            TransactionException exp = new TransactionException(&quot;getGenesisBlock returned null&quot;);</span>
+<span class="nc" id="L798">            logger.error(exp.getMessage(), exp);</span>
+<span class="nc" id="L799">            throw exp;</span>
+
+        }
+
+<span class="nc" id="L803">        logger.debug(format(&quot;Channel %s getGenesisBlock done.&quot;, name));</span>
+<span class="nc" id="L804">        return genesisBlock;</span>
+    }
+
+<span class="fc" id="L807">    private Map&lt;String, MSP&gt; msps = new HashMap&lt;&gt;();</span>
+
+    boolean isSystemChannel() {
+<span class="fc" id="L810">        return systemChannel;</span>
+    }
+
+    public boolean isShutdown() {
+<span class="fc" id="L814">        return shutdown;</span>
+    }
+
+    public byte[] getUpdateChannelConfigurationSignature(UpdateChannelConfiguration updateChannelConfiguration, User signer) throws InvalidArgumentException {
+
+<span class="nc" id="L819">        userContextCheck(signer);</span>
+
+<span class="nc bnc" id="L821" title="All 2 branches missed.">        if (null == updateChannelConfiguration) {</span>
+
+<span class="nc" id="L823">            throw new InvalidArgumentException(&quot;channelConfiguration is null&quot;);</span>
+
+        }
+
+        try {
+
+<span class="nc" id="L829">            TransactionContext transactionContext = getTransactionContext(signer);</span>
+
+<span class="nc" id="L831">            final ByteString configUpdate = ByteString.copyFrom(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes());</span>
+
+<span class="nc" id="L833">            ByteString sigHeaderByteString = getSignatureHeaderAsByteString(signer, transactionContext);</span>
+
+<span class="nc" id="L835">            ByteString signatureByteSting = transactionContext.signByteStrings(new User[] {signer},</span>
+                    sigHeaderByteString, configUpdate)[0];
+
+<span class="nc" id="L838">            return ConfigSignature.newBuilder()</span>
+<span class="nc" id="L839">                    .setSignatureHeader(sigHeaderByteString)</span>
+<span class="nc" id="L840">                    .setSignature(signatureByteSting)</span>
+<span class="nc" id="L841">                    .build().toByteArray();</span>
+
+<span class="nc" id="L843">        } catch (Exception e) {</span>
+
+<span class="nc" id="L845">            throw new InvalidArgumentException(e);</span>
+        } finally {
+<span class="nc" id="L847">            logger.debug(&quot;finally done&quot;);</span>
+        }
+    }
+
+    /**
+     * MSPs
+     */
+
+    class MSP {
+        final String orgName;
+        final MspConfig.FabricMSPConfig fabricMSPConfig;
+        byte[][] adminCerts;
+        byte[][] rootCerts;
+        byte[][] intermediateCerts;
+
+<span class="nc" id="L862">        MSP(String orgName, MspConfig.FabricMSPConfig fabricMSPConfig) {</span>
+<span class="nc" id="L863">            this.orgName = orgName;</span>
+<span class="nc" id="L864">            this.fabricMSPConfig = fabricMSPConfig;</span>
+<span class="nc" id="L865">        }</span>
+
+        /**
+         * Known as the MSPID internally
+         *
+         * @return
+         */
+
+        String getID() {
+<span class="nc" id="L874">            return fabricMSPConfig.getName();</span>
+
+        }
+
+        /**
+         * AdminCerts
+         *
+         * @return array of admin certs in PEM bytes format.
+         */
+        byte[][] getAdminCerts() {
+
+<span class="nc bnc" id="L885" title="All 2 branches missed.">            if (null == adminCerts) {</span>
+<span class="nc" id="L886">                adminCerts = new byte[fabricMSPConfig.getAdminsList().size()][];</span>
+<span class="nc" id="L887">                int i = 0;</span>
+<span class="nc bnc" id="L888" title="All 2 branches missed.">                for (ByteString cert : fabricMSPConfig.getAdminsList()) {</span>
+<span class="nc" id="L889">                    adminCerts[i++] = cert.toByteArray();</span>
+<span class="nc" id="L890">                }</span>
+            }
+<span class="nc" id="L892">            return adminCerts;</span>
+        }
+
+        /**
+         * RootCerts
+         *
+         * @return array of admin certs in PEM bytes format.
+         */
+        byte[][] getRootCerts() {
+
+<span class="nc bnc" id="L902" title="All 2 branches missed.">            if (null == rootCerts) {</span>
+<span class="nc" id="L903">                rootCerts = new byte[fabricMSPConfig.getRootCertsList().size()][];</span>
+<span class="nc" id="L904">                int i = 0;</span>
+<span class="nc bnc" id="L905" title="All 2 branches missed.">                for (ByteString cert : fabricMSPConfig.getRootCertsList()) {</span>
+<span class="nc" id="L906">                    rootCerts[i++] = cert.toByteArray();</span>
+<span class="nc" id="L907">                }</span>
+            }
+
+<span class="nc" id="L910">            return rootCerts;</span>
+        }
+
+        /**
+         * IntermediateCerts
+         *
+         * @return array of intermediate certs in PEM bytes format.
+         */
+        byte[][] getIntermediateCerts() {
+
+<span class="nc bnc" id="L920" title="All 2 branches missed.">            if (null == intermediateCerts) {</span>
+<span class="nc" id="L921">                intermediateCerts = new byte[fabricMSPConfig.getIntermediateCertsList().size()][];</span>
+<span class="nc" id="L922">                int i = 0;</span>
+<span class="nc bnc" id="L923" title="All 2 branches missed.">                for (ByteString cert : fabricMSPConfig.getIntermediateCertsList()) {</span>
+<span class="nc" id="L924">                    intermediateCerts[i++] = cert.toByteArray();</span>
+<span class="nc" id="L925">                }</span>
+            }
+<span class="nc" id="L927">            return intermediateCerts;</span>
+        }
+
+    }
+
+//    /**
+//     * Anchor holds the info for the anchor peers as parsed from the configuration block
+//     */
+//    class Anchor {
+//        public String hostName;
+//        public int port;
+//
+//        Anchor(String hostName, int port) throws InvalidArgumentException {
+//            this.hostName = hostName;
+//            this.port = port;
+//        }
+//    }
+
+    protected void parseConfigBlock() throws TransactionException {
+
+        try {
+
+<span class="nc" id="L949">            final Block configBlock = getConfigurationBlock();</span>
+
+<span class="nc" id="L951">            logger.debug(format(&quot;Channel %s Got config block getting MSP data and anchorPeers data&quot;, name));</span>
+
+<span class="nc" id="L953">            Envelope envelope = Envelope.parseFrom(configBlock.getData().getData(0));</span>
+<span class="nc" id="L954">            Payload payload = Payload.parseFrom(envelope.getPayload());</span>
+<span class="nc" id="L955">            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());</span>
+<span class="nc" id="L956">            ConfigGroup channelGroup = configEnvelope.getConfig().getChannelGroup();</span>
+<span class="nc" id="L957">            Map&lt;String, MSP&gt; newMSPS = traverseConfigGroupsMSP(&quot;&quot;, channelGroup, new HashMap&lt;&gt;(20));</span>
+
+<span class="nc" id="L959">            msps = Collections.unmodifiableMap(newMSPS);</span>
+
+//            anchorPeers = Collections.unmodifiableSet(traverseConfigGroupsAnchors(&quot;&quot;, channelGroup, new HashSet&lt;&gt;()));
+
+<span class="nc" id="L963">        } catch (TransactionException e) {</span>
+<span class="nc" id="L964">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L965">            throw e;</span>
+<span class="nc" id="L966">        } catch (Exception e) {</span>
+<span class="nc" id="L967">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L968">            throw new TransactionException(e);</span>
+<span class="nc" id="L969">        }</span>
+
+<span class="nc" id="L971">    }</span>
+
+//    private Set&lt;Anchor&gt; traverseConfigGroupsAnchors(String name, ConfigGroup configGroup, Set&lt;Anchor&gt; anchorPeers) throws InvalidProtocolBufferException, InvalidArgumentException {
+//        ConfigValue anchorsConfig = configGroup.getValuesMap().get(&quot;AnchorPeers&quot;);
+//        if (anchorsConfig != null) {
+//            AnchorPeers anchors = AnchorPeers.parseFrom(anchorsConfig.getValue());
+//            for (AnchorPeer anchorPeer : anchors.getAnchorPeersList()) {
+//                String hostName = anchorPeer.getHost();
+//                int port = anchorPeer.getPort();
+//                logger.debug(format(&quot;parsed from config block: anchor peer %s:%d&quot;, hostName, port));
+//                anchorPeers.add(new Anchor(hostName, port));
+//            }
+//        }
+//
+//        for (Map.Entry&lt;String, ConfigGroup&gt; gm : configGroup.getGroupsMap().entrySet()) {
+//            traverseConfigGroupsAnchors(gm.getKey(), gm.getValue(), anchorPeers);
+//        }
+//
+//        return anchorPeers;
+//    }
+
+    private Map&lt;String, MSP&gt; traverseConfigGroupsMSP(String name, ConfigGroup configGroup, Map&lt;String, MSP&gt; msps) throws InvalidProtocolBufferException {
+
+<span class="nc" id="L994">        ConfigValue mspv = configGroup.getValuesMap().get(&quot;MSP&quot;);</span>
+<span class="nc bnc" id="L995" title="All 2 branches missed.">        if (null != mspv) {</span>
+<span class="nc bnc" id="L996" title="All 2 branches missed.">            if (!msps.containsKey(name)) {</span>
+
+<span class="nc" id="L998">                MspConfig.MSPConfig mspConfig = MspConfig.MSPConfig.parseFrom(mspv.getValue());</span>
+
+<span class="nc" id="L1000">                MspConfig.FabricMSPConfig fabricMSPConfig = MspConfig.FabricMSPConfig.parseFrom(mspConfig.getConfig());</span>
+
+<span class="nc" id="L1002">                msps.put(name, new MSP(name, fabricMSPConfig));</span>
+
+            }
+        }
+
+<span class="nc bnc" id="L1007" title="All 2 branches missed.">        for (Map.Entry&lt;String, ConfigGroup&gt; gm : configGroup.getGroupsMap().entrySet()) {</span>
+<span class="nc" id="L1008">            traverseConfigGroupsMSP(gm.getKey(), gm.getValue(), msps);</span>
+<span class="nc" id="L1009">        }</span>
+
+<span class="nc" id="L1011">        return msps;</span>
+    }
+
+    /**
+     * Provide the Channel's latest raw Configuration Block.
+     *
+     * @return Channel configuration block.
+     * @throws TransactionException
+     */
+
+    private Block getConfigurationBlock() throws TransactionException {
+
+<span class="nc" id="L1023">        logger.debug(format(&quot;getConfigurationBlock for channel %s&quot;, name));</span>
+
+        try {
+<span class="nc" id="L1026">            Orderer orderer = getRandomOrderer();</span>
+
+<span class="nc" id="L1028">            long lastConfigIndex = getLastConfigIndex(orderer);</span>
+
+<span class="nc" id="L1030">            logger.debug(format(&quot;Last config index is %d&quot;, lastConfigIndex));</span>
+
+<span class="nc" id="L1032">            Block configBlock = getBlockByNumber(lastConfigIndex);</span>
+
+            //Little extra parsing but make sure this really is a config block for this channel.
+<span class="nc" id="L1035">            Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));</span>
+<span class="nc" id="L1036">            Payload payload = Payload.parseFrom(envelopeRet.getPayload());</span>
+<span class="nc" id="L1037">            ChannelHeader channelHeader = ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());</span>
+<span class="nc bnc" id="L1038" title="All 2 branches missed.">            if (channelHeader.getType() != HeaderType.CONFIG.getNumber()) {</span>
+<span class="nc" id="L1039">                throw new TransactionException(format(&quot;Bad last configuration block type %d, expected %d&quot;,</span>
+<span class="nc" id="L1040">                        channelHeader.getType(), HeaderType.CONFIG.getNumber()));</span>
+            }
+
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">            if (!name.equals(channelHeader.getChannelId())) {</span>
+<span class="nc" id="L1044">                throw new TransactionException(format(&quot;Bad last configuration block channel id %s, expected %s&quot;,</span>
+<span class="nc" id="L1045">                        channelHeader.getChannelId(), name));</span>
+            }
+
+<span class="nc" id="L1048">            logger.trace(format(&quot;Channel %s getConfigurationBlock returned %s&quot;, name, String.valueOf(configBlock)));</span>
+<span class="nc bnc" id="L1049" title="All 2 branches missed.">            if (!logger.isTraceEnabled()) {</span>
+<span class="nc" id="L1050">                logger.debug(format(&quot;Channel %s getConfigurationBlock returned&quot;, name));</span>
+            }
+
+<span class="nc" id="L1053">            return configBlock;</span>
+
+<span class="nc" id="L1055">        } catch (TransactionException e) {</span>
+<span class="nc" id="L1056">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L1057">            throw e;</span>
+<span class="nc" id="L1058">        } catch (Exception e) {</span>
+<span class="nc" id="L1059">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L1060">            throw new TransactionException(e);</span>
+        }
+
+    }
+
+    /**
+     * Channel Configuration bytes. Bytes that can be used with configtxlator tool to upgrade the channel.
+     * Convert to Json for editing  with:
+     * {@code
+     * &lt;p&gt;
+     * curl -v   POST --data-binary @fooConfig http://host/protolator/decode/common.Config
+     * &lt;p&gt;
+     * }
+     * See http://hyperledger-fabric.readthedocs.io/en/latest/configtxlator.html
+     *
+     * @return Channel configuration bytes.
+     * @throws TransactionException
+     */
+
+    public byte[] getChannelConfigurationBytes() throws TransactionException {
+        try {
+<span class="nc" id="L1081">            final Block configBlock = getConfigurationBlock();</span>
+
+<span class="nc" id="L1083">            Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));</span>
+
+<span class="nc" id="L1085">            Payload payload = Payload.parseFrom(envelopeRet.getPayload());</span>
+
+<span class="nc" id="L1087">            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());</span>
+<span class="nc" id="L1088">            return configEnvelope.getConfig().toByteArray();</span>
+
+<span class="nc" id="L1090">        } catch (Exception e) {</span>
+<span class="nc" id="L1091">            throw new TransactionException(e);</span>
+        }
+
+    }
+
+    private long getLastConfigIndex(Orderer orderer) throws CryptoException, TransactionException, InvalidArgumentException, InvalidProtocolBufferException {
+<span class="nc" id="L1097">        Block latestBlock = getLatestBlock(orderer);</span>
+
+<span class="nc" id="L1099">        BlockMetadata blockMetadata = latestBlock.getMetadata();</span>
+
+<span class="nc" id="L1101">        Metadata metaData = Metadata.parseFrom(blockMetadata.getMetadata(1));</span>
+
+<span class="nc" id="L1103">        LastConfig lastConfig = LastConfig.parseFrom(metaData.getValue());</span>
+
+<span class="nc" id="L1105">        return lastConfig.getIndex();</span>
+    }
+
+    private Block getBlockByNumber(final long number) throws TransactionException {
+
+<span class="nc" id="L1110">        logger.trace(format(&quot;getConfigurationBlock for channel %s&quot;, name));</span>
+
+        try {
+
+<span class="nc" id="L1114">            logger.trace(format(&quot;Last config index is %d&quot;, number));</span>
+
+<span class="nc" id="L1116">            SeekSpecified seekSpecified = SeekSpecified.newBuilder().setNumber(number).build();</span>
+
+<span class="nc" id="L1118">            SeekPosition seekPosition = SeekPosition.newBuilder()</span>
+<span class="nc" id="L1119">                    .setSpecified(seekSpecified)</span>
+<span class="nc" id="L1120">                    .build();</span>
+
+<span class="nc" id="L1122">            SeekInfo seekInfo = SeekInfo.newBuilder()</span>
+<span class="nc" id="L1123">                    .setStart(seekPosition)</span>
+<span class="nc" id="L1124">                    .setStop(seekPosition)</span>
+<span class="nc" id="L1125">                    .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)</span>
+<span class="nc" id="L1126">                    .build();</span>
+
+<span class="nc" id="L1128">            ArrayList&lt;DeliverResponse&gt; deliverResponses = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L1130">            seekBlock(seekInfo, deliverResponses, getRandomOrderer());</span>
+
+<span class="nc" id="L1132">            DeliverResponse blockresp = deliverResponses.get(1);</span>
+
+<span class="nc" id="L1134">            Block retBlock = blockresp.getBlock();</span>
+<span class="nc bnc" id="L1135" title="All 2 branches missed.">            if (retBlock == null) {</span>
+<span class="nc" id="L1136">                throw new TransactionException(format(&quot;newest block for channel %s fetch bad deliver returned null:&quot;, name));</span>
+            }
+
+<span class="nc" id="L1139">            int dataCount = retBlock.getData().getDataCount();</span>
+<span class="nc bnc" id="L1140" title="All 2 branches missed.">            if (dataCount &lt; 1) {</span>
+<span class="nc" id="L1141">                throw new TransactionException(format(&quot;Bad config block data count %d&quot;, dataCount));</span>
+            }
+
+<span class="nc" id="L1144">            logger.trace(format(&quot;Received  block for channel %s, block no:%d, transaction count: %d&quot;,</span>
+<span class="nc" id="L1145">                    name, retBlock.getHeader().getNumber(), retBlock.getData().getDataCount()));</span>
+
+<span class="nc" id="L1147">            return retBlock;</span>
+
+<span class="nc" id="L1149">        } catch (TransactionException e) {</span>
+<span class="nc" id="L1150">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L1151">            throw e;</span>
+<span class="nc" id="L1152">        } catch (Exception e) {</span>
+<span class="nc" id="L1153">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L1154">            throw new TransactionException(e);</span>
+        }
+
+    }
+
+    private int seekBlock(SeekInfo seekInfo, List&lt;DeliverResponse&gt; deliverResponses, Orderer ordererIn) throws TransactionException {
+
+<span class="nc" id="L1161">        logger.trace(format(&quot;seekBlock for channel %s&quot;, name));</span>
+<span class="nc" id="L1162">        final long start = System.currentTimeMillis();</span>
+        @SuppressWarnings (&quot;UnusedAssignment&quot;)
+<span class="nc" id="L1164">        int statusRC = 404;</span>
+
+        try {
+
+            do {
+
+<span class="nc" id="L1170">                statusRC = 404;</span>
+
+<span class="nc bnc" id="L1172" title="All 2 branches missed.">                final Orderer orderer = ordererIn != null ? ordererIn : getRandomOrderer();</span>
+
+<span class="nc" id="L1174">                TransactionContext txContext = getTransactionContext();</span>
+
+<span class="nc" id="L1176">                ChannelHeader seekInfoHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO,</span>
+<span class="nc" id="L1177">                        txContext.getTxID(), name, txContext.getEpoch(), getCurrentFabricTimestamp(), null);</span>
+
+<span class="nc" id="L1179">                SignatureHeader signatureHeader = SignatureHeader.newBuilder()</span>
+<span class="nc" id="L1180">                        .setCreator(txContext.getIdentity().toByteString())</span>
+<span class="nc" id="L1181">                        .setNonce(txContext.getNonce())</span>
+<span class="nc" id="L1182">                        .build();</span>
+
+<span class="nc" id="L1184">                Header seekHeader = Header.newBuilder()</span>
+<span class="nc" id="L1185">                        .setSignatureHeader(signatureHeader.toByteString())</span>
+<span class="nc" id="L1186">                        .setChannelHeader(seekInfoHeader.toByteString())</span>
+<span class="nc" id="L1187">                        .build();</span>
+
+<span class="nc" id="L1189">                Payload seekPayload = Payload.newBuilder()</span>
+<span class="nc" id="L1190">                        .setHeader(seekHeader)</span>
+<span class="nc" id="L1191">                        .setData(seekInfo.toByteString())</span>
+<span class="nc" id="L1192">                        .build();</span>
+
+<span class="nc" id="L1194">                Envelope envelope = Envelope.newBuilder().setSignature(txContext.signByteString(seekPayload.toByteArray()))</span>
+<span class="nc" id="L1195">                        .setPayload(seekPayload.toByteString())</span>
+<span class="nc" id="L1196">                        .build();</span>
+
+<span class="nc" id="L1198">                DeliverResponse[] deliver = orderer.sendDeliver(envelope);</span>
+
+<span class="nc bnc" id="L1200" title="All 2 branches missed.">                if (deliver.length &lt; 1) {</span>
+<span class="nc" id="L1201">                    logger.warn(format(&quot;Genesis block for channel %s fetch bad deliver missing status block only got blocks:%d&quot;, name, deliver.length));</span>
+                    //odd so lets try again....
+<span class="nc" id="L1203">                    statusRC = 404;</span>
+
+                } else {
+
+<span class="nc" id="L1207">                    DeliverResponse status = deliver[0];</span>
+<span class="nc" id="L1208">                    statusRC = status.getStatusValue();</span>
+
+<span class="nc bnc" id="L1210" title="All 4 branches missed.">                    if (statusRC == 404 || statusRC == 503) { //404 - block not found.  503 - service not available usually means kafka is not ready but starting.</span>
+<span class="nc" id="L1211">                        logger.warn(format(&quot;Bad deliver expected status 200  got  %d, Channel %s&quot;, status.getStatusValue(), name));</span>
+                        // keep trying... else
+<span class="nc" id="L1213">                        statusRC = 404;</span>
+
+<span class="nc bnc" id="L1215" title="All 2 branches missed.">                    } else if (statusRC != 200) { // Assume for anything other than 200 we have a non retryable situation</span>
+<span class="nc" id="L1216">                        throw new TransactionException(format(&quot;Bad newest block expected status 200  got  %d, Channel %s&quot;, status.getStatusValue(), name));</span>
+                    } else {
+<span class="nc bnc" id="L1218" title="All 2 branches missed.">                        if (deliver.length &lt; 2) {</span>
+<span class="nc" id="L1219">                            throw new TransactionException(format(&quot;Newest block for channel %s fetch bad deliver missing genesis block only got %d:&quot;, name, deliver.length));</span>
+                        } else {
+
+<span class="nc" id="L1222">                            deliverResponses.addAll(Arrays.asList(deliver));</span>
+                        }
+                    }
+
+                }
+
+                // Not 200 so sleep to try again
+
+<span class="nc bnc" id="L1230" title="All 2 branches missed.">                if (200 != statusRC) {</span>
+<span class="nc" id="L1231">                    long duration = System.currentTimeMillis() - start;</span>
+
+<span class="nc bnc" id="L1233" title="All 2 branches missed.">                    if (duration &gt; config.getGenesisBlockWaitTime()) {</span>
+<span class="nc" id="L1234">                        throw new TransactionException(format(&quot;Getting block time exceeded %s seconds for channel %s&quot;, Long.toString(TimeUnit.MILLISECONDS.toSeconds(duration)), name));</span>
+                    }
+                    try {
+<span class="nc" id="L1237">                        Thread.sleep(ORDERER_RETRY_WAIT_TIME); //try again</span>
+<span class="nc" id="L1238">                    } catch (InterruptedException e) {</span>
+<span class="nc" id="L1239">                        TransactionException te = new TransactionException(&quot;seekBlock thread Sleep&quot;, e);</span>
+<span class="nc" id="L1240">                        logger.warn(te.getMessage(), te);</span>
+<span class="nc" id="L1241">                    }</span>
+                }
+
+<span class="nc bnc" id="L1244" title="All 2 branches missed.">            } while (statusRC != 200);</span>
+
+<span class="nc" id="L1246">        } catch (TransactionException e) {</span>
+<span class="nc" id="L1247">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L1248">            throw e;</span>
+<span class="nc" id="L1249">        } catch (Exception e) {</span>
+<span class="nc" id="L1250">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L1251">            throw new TransactionException(e);</span>
+<span class="nc" id="L1252">        }</span>
+
+<span class="nc" id="L1254">        return statusRC;</span>
+
+    }
+
+    private Block getLatestBlock(Orderer orderer) throws TransactionException {
+
+<span class="nc" id="L1260">        logger.debug(format(&quot;getConfigurationBlock for channel %s&quot;, name));</span>
+
+<span class="nc" id="L1262">        SeekPosition seekPosition = SeekPosition.newBuilder()</span>
+<span class="nc" id="L1263">                .setNewest(Ab.SeekNewest.getDefaultInstance())</span>
+<span class="nc" id="L1264">                .build();</span>
+
+<span class="nc" id="L1266">        SeekInfo seekInfo = SeekInfo.newBuilder()</span>
+<span class="nc" id="L1267">                .setStart(seekPosition)</span>
+<span class="nc" id="L1268">                .setStop(seekPosition)</span>
+<span class="nc" id="L1269">                .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)</span>
+<span class="nc" id="L1270">                .build();</span>
+
+<span class="nc" id="L1272">        ArrayList&lt;DeliverResponse&gt; deliverResponses = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L1274">        seekBlock(seekInfo, deliverResponses, orderer);</span>
+
+<span class="nc" id="L1276">        DeliverResponse blockresp = deliverResponses.get(1);</span>
+
+<span class="nc" id="L1278">        Block latestBlock = blockresp.getBlock();</span>
+
+<span class="nc bnc" id="L1280" title="All 2 branches missed.">        if (latestBlock == null) {</span>
+<span class="nc" id="L1281">            throw new TransactionException(format(&quot;newest block for channel %s fetch bad deliver returned null:&quot;, name));</span>
+        }
+
+<span class="nc" id="L1284">        logger.trace(format(&quot;Received latest  block for channel %s, block no:%d&quot;, name, latestBlock.getHeader().getNumber()));</span>
+<span class="nc" id="L1285">        return latestBlock;</span>
+    }
+
+    public Collection&lt;Orderer&gt; getOrderers() {
+<span class="fc" id="L1289">        return Collections.unmodifiableCollection(orderers);</span>
+    }
+
+    /**
+     * createNewInstance
+     *
+     * @param name
+     * @return A new channel
+     */
+    static Channel createNewInstance(String name, HFClient clientContext) throws InvalidArgumentException {
+<span class="fc" id="L1299">        return new Channel(name, clientContext);</span>
+    }
+
+    static Channel createNewInstance(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... signers) throws InvalidArgumentException, TransactionException {
+
+<span class="nc" id="L1304">        return new Channel(name, hfClient, orderer, channelConfiguration, signers);</span>
+
+    }
+
+    /**
+     * Send instantiate request to the channel. Chaincode is created and initialized.
+     *
+     * @param instantiateProposalRequest send instantiate chaincode proposal request.
+     * @return Collections of proposal responses
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public Collection&lt;ProposalResponse&gt; sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
+
+<span class="nc" id="L1319">        return sendInstantiationProposal(instantiateProposalRequest, peers);</span>
+    }
+
+    /**
+     * Send instantiate request to the channel. Chaincode is created and initialized.
+     *
+     * @param instantiateProposalRequest
+     * @param peers
+     * @return responses from peers.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public Collection&lt;ProposalResponse&gt; sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest,
+                                                                  Collection&lt;Peer&gt; peers) throws InvalidArgumentException, ProposalException {
+<span class="fc" id="L1333">        checkChannelState();</span>
+<span class="fc bfc" id="L1334" title="All 2 branches covered.">        if (null == instantiateProposalRequest) {</span>
+<span class="fc" id="L1335">            throw new InvalidArgumentException(&quot;InstantiateProposalRequest is null&quot;);</span>
+        }
+
+<span class="fc" id="L1338">        instantiateProposalRequest.setSubmitted();</span>
+
+<span class="nc" id="L1340">        checkPeers(peers);</span>
+
+        try {
+<span class="nc" id="L1343">            TransactionContext transactionContext = getTransactionContext(instantiateProposalRequest.getUserContext());</span>
+<span class="nc" id="L1344">            transactionContext.setProposalWaitTime(instantiateProposalRequest.getProposalWaitTime());</span>
+<span class="nc" id="L1345">            InstantiateProposalBuilder instantiateProposalbuilder = InstantiateProposalBuilder.newBuilder();</span>
+<span class="nc" id="L1346">            instantiateProposalbuilder.context(transactionContext);</span>
+<span class="nc" id="L1347">            instantiateProposalbuilder.argss(instantiateProposalRequest.getArgs());</span>
+<span class="nc" id="L1348">            instantiateProposalbuilder.chaincodeName(instantiateProposalRequest.getChaincodeName());</span>
+<span class="nc" id="L1349">            instantiateProposalbuilder.chaincodePath(instantiateProposalRequest.getChaincodePath());</span>
+<span class="nc" id="L1350">            instantiateProposalbuilder.chaincodeVersion(instantiateProposalRequest.getChaincodeVersion());</span>
+<span class="nc" id="L1351">            instantiateProposalbuilder.chaincodEndorsementPolicy(instantiateProposalRequest.getChaincodeEndorsementPolicy());</span>
+<span class="nc" id="L1352">            instantiateProposalbuilder.setTransientMap(instantiateProposalRequest.getTransientMap());</span>
+
+<span class="nc" id="L1354">            FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();</span>
+<span class="nc" id="L1355">            SignedProposal signedProposal = getSignedProposal(transactionContext, instantiateProposal);</span>
+
+<span class="nc" id="L1357">            return sendProposalToPeers(peers, signedProposal, transactionContext);</span>
+<span class="nc" id="L1358">        } catch (Exception e) {</span>
+<span class="nc" id="L1359">            throw new ProposalException(e);</span>
+        }
+    }
+
+    private TransactionContext getTransactionContext() throws InvalidArgumentException {
+<span class="fc" id="L1364">        return getTransactionContext(client.getUserContext());</span>
+    }
+
+    private TransactionContext getTransactionContext(User userContext) throws InvalidArgumentException {
+<span class="pc bpc" id="L1368" title="1 of 2 branches missed.">        userContext = userContext != null ? userContext : client.getUserContext();</span>
+
+<span class="fc" id="L1370">        userContextCheck(userContext);</span>
+
+<span class="fc" id="L1372">        return new TransactionContext(this, userContext, client.getCryptoSuite());</span>
+    }
+
+    /**
+     * Send install chaincode request proposal to all the channels on the peer.
+     *
+     * @param installProposalRequest
+     * @return
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+
+    Collection&lt;ProposalResponse&gt; sendInstallProposal(InstallProposalRequest installProposalRequest)
+            throws ProposalException, InvalidArgumentException {
+<span class="nc" id="L1386">        return sendInstallProposal(installProposalRequest, peers);</span>
+
+    }
+
+    /**
+     * Send install chaincode request proposal to the channel.
+     *
+     * @param installProposalRequest
+     * @param peers
+     * @return
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+
+    Collection&lt;ProposalResponse&gt; sendInstallProposal(InstallProposalRequest installProposalRequest, Collection&lt;Peer&gt; peers)
+            throws ProposalException, InvalidArgumentException {
+
+<span class="fc" id="L1403">        checkChannelState();</span>
+<span class="fc" id="L1404">        checkPeers(peers);</span>
+<span class="pc bpc" id="L1405" title="1 of 2 branches missed.">        if (null == installProposalRequest) {</span>
+<span class="fc" id="L1406">            throw new InvalidArgumentException(&quot;InstallProposalRequest is null&quot;);</span>
+        }
+
+        try {
+<span class="nc" id="L1410">            TransactionContext transactionContext = getTransactionContext(installProposalRequest.getUserContext());</span>
+<span class="nc" id="L1411">            transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.</span>
+<span class="nc" id="L1412">            transactionContext.setProposalWaitTime(installProposalRequest.getProposalWaitTime());</span>
+<span class="nc" id="L1413">            InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();</span>
+<span class="nc" id="L1414">            installProposalbuilder.context(transactionContext);</span>
+<span class="nc" id="L1415">            installProposalbuilder.setChaincodeLanguage(installProposalRequest.getChaincodeLanguage());</span>
+<span class="nc" id="L1416">            installProposalbuilder.chaincodeName(installProposalRequest.getChaincodeName());</span>
+<span class="nc" id="L1417">            installProposalbuilder.chaincodePath(installProposalRequest.getChaincodePath());</span>
+<span class="nc" id="L1418">            installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());</span>
+<span class="nc" id="L1419">            installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());</span>
+<span class="nc" id="L1420">            installProposalbuilder.setChaincodeInputStream(installProposalRequest.getChaincodeInputStream());</span>
+
+<span class="nc" id="L1422">            FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();</span>
+<span class="nc" id="L1423">            SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);</span>
+
+<span class="nc" id="L1425">            return sendProposalToPeers(peers, signedProposal, transactionContext);</span>
+<span class="nc" id="L1426">        } catch (Exception e) {</span>
+<span class="nc" id="L1427">            throw new ProposalException(e);</span>
+        }
+
+    }
+
+    /**
+     * Send Upgrade proposal proposal to upgrade chaincode to a new version.
+     *
+     * @param upgradeProposalRequest
+     * @return Collection of proposal responses.
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+
+    public Collection&lt;ProposalResponse&gt; sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest) throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L1443">        return sendUpgradeProposal(upgradeProposalRequest, peers);</span>
+
+    }
+
+    /**
+     * Send Upgrade proposal proposal to upgrade chaincode to a new version.
+     *
+     * @param upgradeProposalRequest
+     * @param peers                  the specific peers to send to.
+     * @return Collection of proposal responses.
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+
+    public Collection&lt;ProposalResponse&gt; sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection&lt;Peer&gt; peers)
+            throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L1460">        checkChannelState();</span>
+<span class="fc" id="L1461">        checkPeers(peers);</span>
+
+<span class="pc bpc" id="L1463" title="1 of 2 branches missed.">        if (null == upgradeProposalRequest) {</span>
+<span class="fc" id="L1464">            throw new InvalidArgumentException(&quot;Upgradeproposal is null&quot;);</span>
+        }
+
+        try {
+<span class="nc" id="L1468">            TransactionContext transactionContext = getTransactionContext(upgradeProposalRequest.getUserContext());</span>
+            //transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.
+<span class="nc" id="L1470">            transactionContext.setProposalWaitTime(upgradeProposalRequest.getProposalWaitTime());</span>
+<span class="nc" id="L1471">            UpgradeProposalBuilder upgradeProposalBuilder = UpgradeProposalBuilder.newBuilder();</span>
+<span class="nc" id="L1472">            upgradeProposalBuilder.context(transactionContext);</span>
+<span class="nc" id="L1473">            upgradeProposalBuilder.argss(upgradeProposalRequest.getArgs());</span>
+<span class="nc" id="L1474">            upgradeProposalBuilder.chaincodeName(upgradeProposalRequest.getChaincodeName());</span>
+<span class="nc" id="L1475">            upgradeProposalBuilder.chaincodePath(upgradeProposalRequest.getChaincodePath());</span>
+<span class="nc" id="L1476">            upgradeProposalBuilder.chaincodeVersion(upgradeProposalRequest.getChaincodeVersion());</span>
+<span class="nc" id="L1477">            upgradeProposalBuilder.chaincodEndorsementPolicy(upgradeProposalRequest.getChaincodeEndorsementPolicy());</span>
+
+<span class="nc" id="L1479">            SignedProposal signedProposal = getSignedProposal(transactionContext, upgradeProposalBuilder.build());</span>
+
+<span class="nc" id="L1481">            return sendProposalToPeers(peers, signedProposal, transactionContext);</span>
+<span class="nc" id="L1482">        } catch (Exception e) {</span>
+<span class="nc" id="L1483">            throw new ProposalException(e);</span>
+        }
+    }
+
+    private SignedProposal getSignedProposal(TransactionContext transactionContext, FabricProposal.Proposal proposal) throws CryptoException {
+
+<span class="fc" id="L1489">        return SignedProposal.newBuilder()</span>
+<span class="fc" id="L1490">                .setProposalBytes(proposal.toByteString())</span>
+<span class="fc" id="L1491">                .setSignature(transactionContext.signByteString(proposal.toByteArray()))</span>
+<span class="fc" id="L1492">                .build();</span>
+
+    }
+
+    /**
+     * query this channel for a Block by the block hash.
+     * The request is sent to a random peer in the channel.
+     *
+     * @param blockHash the hash of the Block in the chain
+     * @return the {@link BlockInfo} with the given block Hash
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockInfo queryBlockByHash(byte[] blockHash) throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L1507">        checkChannelState();</span>
+
+<span class="pc bpc" id="L1509" title="1 of 2 branches missed.">        if (blockHash == null) {</span>
+<span class="fc" id="L1510">            throw new InvalidArgumentException(&quot;blockHash parameter is null.&quot;);</span>
+        }
+<span class="nc" id="L1512">        return queryBlockByHash(getRandomPeer(), blockHash);</span>
+    }
+
+    private void checkChannelState() throws InvalidArgumentException {
+<span class="fc bfc" id="L1516" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L1517">            throw new InvalidArgumentException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+
+<span class="fc bfc" id="L1520" title="All 2 branches covered.">        if (!initialized) {</span>
+<span class="fc" id="L1521">            throw new InvalidArgumentException(format(&quot;Channel %s has not been initialized.&quot;, name));</span>
+        }
+
+<span class="fc" id="L1524">        userContextCheck(client.getUserContext());</span>
+
+<span class="fc" id="L1526">    }</span>
+
+    /**
+     * Query a peer in this channel for a Block by the block hash.
+     *
+     * @param peer      the Peer to query.
+     * @param blockHash the hash of the Block in the chain.
+     * @return the {@link BlockInfo} with the given block Hash
+     * @throws InvalidArgumentException if the channel is shutdown or any of the arguments are not valid.
+     * @throws ProposalException        if an error occurred processing the query.
+     */
+    public BlockInfo queryBlockByHash(Peer peer, byte[] blockHash) throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L1539">        checkChannelState();</span>
+<span class="nc" id="L1540">        checkPeer(peer);</span>
+
+<span class="nc bnc" id="L1542" title="All 2 branches missed.">        if (blockHash == null) {</span>
+<span class="nc" id="L1543">            throw new InvalidArgumentException(&quot;blockHash parameter is null.&quot;);</span>
+        }
+
+        ProposalResponse proposalResponse;
+        BlockInfo responseBlock;
+        try {
+<span class="nc" id="L1549">            logger.debug(&quot;queryBlockByHash with hash : &quot; + Hex.encodeHexString(blockHash) + &quot;\n    to peer &quot; + peer.getName() + &quot; on channel &quot; + name);</span>
+<span class="nc" id="L1550">            QuerySCCRequest querySCCRequest = new QuerySCCRequest(client.getUserContext());</span>
+<span class="nc" id="L1551">            querySCCRequest.setFcn(QuerySCCRequest.GETBLOCKBYHASH);</span>
+<span class="nc" id="L1552">            querySCCRequest.setArgs(new String[] {name});</span>
+<span class="nc" id="L1553">            querySCCRequest.setArgBytes(new byte[][] {blockHash});</span>
+
+<span class="nc" id="L1555">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposal(querySCCRequest, Collections.singletonList(peer));</span>
+<span class="nc" id="L1556">            proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc bnc" id="L1558" title="All 2 branches missed.">            if (proposalResponse.getStatus().getStatus() != 200) {</span>
+<span class="nc" id="L1559">                throw new PeerException(format(&quot;Unable to query block by hash %s %n.... for channel %s from peer %s \n    with message %s&quot;,</span>
+<span class="nc" id="L1560">                        Hex.encodeHexString(blockHash),</span>
+                        name,
+<span class="nc" id="L1562">                        peer.getName(),</span>
+<span class="nc" id="L1563">                        proposalResponse.getMessage()));</span>
+            }
+<span class="nc" id="L1565">            responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));</span>
+<span class="nc" id="L1566">        } catch (Exception e) {</span>
+<span class="nc" id="L1567">            String emsg = format(&quot;queryBlockByHash hash: %s peer %s channel %s error: %s&quot;,</span>
+<span class="nc" id="L1568">                    Hex.encodeHexString(blockHash), peer.getName(), name, e.getMessage());</span>
+<span class="nc" id="L1569">            logger.error(emsg, e);</span>
+<span class="nc" id="L1570">            throw new ProposalException(emsg, e);</span>
+<span class="nc" id="L1571">        }</span>
+
+<span class="nc" id="L1573">        return responseBlock;</span>
+    }
+
+    /**
+     * query this channel for a Block by the blockNumber.
+     * The request is sent to a random peer in the channel.
+     *
+     * @param blockNumber index of the Block in the chain
+     * @return the {@link BlockInfo} with the given blockNumber
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockInfo queryBlockByNumber(long blockNumber) throws InvalidArgumentException, ProposalException {
+<span class="nc" id="L1586">        return queryBlockByNumber(getRandomPeer(), blockNumber);</span>
+    }
+
+    private Peer getRandomPeer() throws InvalidArgumentException {
+
+<span class="pc bpc" id="L1591" title="1 of 2 branches missed.">        if (getPeers().isEmpty()) {</span>
+<span class="nc" id="L1592">            throw new InvalidArgumentException(&quot;Channel &quot; + name + &quot; does not have any peers associated with it.&quot;);</span>
+        }
+
+<span class="fc" id="L1595">        return getPeers().iterator().next(); //TODO make this random</span>
+
+    }
+
+    private Orderer getRandomOrderer() throws InvalidArgumentException {
+
+<span class="pc bpc" id="L1601" title="1 of 2 branches missed.">        if (getOrderers().isEmpty()) {</span>
+<span class="fc" id="L1602">            throw new InvalidArgumentException(&quot;Channel &quot; + name + &quot; does not have any orderers associated with it.&quot;);</span>
+        }
+
+<span class="nc" id="L1605">        return getOrderers().iterator().next(); //TODO make this random</span>
+
+    }
+
+    private void checkPeer(Peer peer) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L1611" title="All 2 branches covered.">        if (peer == null) {</span>
+<span class="fc" id="L1612">            throw new InvalidArgumentException(&quot;Peer value is null.&quot;);</span>
+        }
+<span class="fc bfc" id="L1614" title="All 2 branches covered.">        if (isSystemChannel()) {</span>
+<span class="fc" id="L1615">            return; // System owns no peers</span>
+        }
+<span class="fc bfc" id="L1617" title="All 2 branches covered.">        if (!getPeers().contains(peer)) {</span>
+<span class="fc" id="L1618">            throw new InvalidArgumentException(&quot;Channel &quot; + name + &quot; does not have peer &quot; + peer.getName());</span>
+        }
+<span class="fc bfc" id="L1620" title="All 2 branches covered.">        if (peer.getChannel() != this) {</span>
+<span class="fc" id="L1621">            throw new InvalidArgumentException(&quot;Peer &quot; + peer.getName() + &quot; not set for channel &quot; + name);</span>
+        }
+
+<span class="fc" id="L1624">    }</span>
+
+    private void checkOrderer(Orderer orderer) throws InvalidArgumentException {
+
+<span class="nc bnc" id="L1628" title="All 2 branches missed.">        if (orderer == null) {</span>
+<span class="nc" id="L1629">            throw new InvalidArgumentException(&quot;Orderer value is null.&quot;);</span>
+        }
+<span class="nc bnc" id="L1631" title="All 2 branches missed.">        if (isSystemChannel()) {</span>
+<span class="nc" id="L1632">            return; // System owns no Orderers</span>
+        }
+<span class="nc bnc" id="L1634" title="All 2 branches missed.">        if (!getOrderers().contains(orderer)) {</span>
+<span class="nc" id="L1635">            throw new InvalidArgumentException(&quot;Channel &quot; + name + &quot; does not have orderer &quot; + orderer.getName());</span>
+        }
+<span class="nc bnc" id="L1637" title="All 2 branches missed.">        if (orderer.getChannel() != this) {</span>
+<span class="nc" id="L1638">            throw new InvalidArgumentException(&quot;Orderer &quot; + orderer.getName() + &quot; not set for channel &quot; + name);</span>
+        }
+
+<span class="nc" id="L1641">    }</span>
+
+    private void checkPeers(Collection&lt;Peer&gt; peers) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L1645" title="All 2 branches covered.">        if (peers == null) {</span>
+<span class="fc" id="L1646">            throw new InvalidArgumentException(&quot;Collection of peers is null.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L1649" title="All 2 branches covered.">        if (peers.isEmpty()) {</span>
+<span class="fc" id="L1650">            throw new InvalidArgumentException(&quot;Collection of peers is empty.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L1653" title="All 2 branches covered.">        for (Peer peer : peers) {</span>
+<span class="fc" id="L1654">            checkPeer(peer);</span>
+<span class="fc" id="L1655">        }</span>
+<span class="fc" id="L1656">    }</span>
+
+    /**
+     * query a peer in this channel for a Block by the blockNumber
+     *
+     * @param peer        the peer to send the request to
+     * @param blockNumber index of the Block in the chain
+     * @return the {@link BlockInfo} with the given blockNumber
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockInfo queryBlockByNumber(Peer peer, long blockNumber) throws InvalidArgumentException, ProposalException {
+
+<span class="nc" id="L1669">        checkChannelState();</span>
+<span class="nc" id="L1670">        checkPeer(peer);</span>
+
+        ProposalResponse proposalResponse;
+        BlockInfo responseBlock;
+        try {
+<span class="nc" id="L1675">            logger.debug(&quot;queryBlockByNumber with blockNumber &quot; + blockNumber + &quot; to peer &quot; + peer.getName() + &quot; on channel &quot; + name);</span>
+<span class="nc" id="L1676">            QuerySCCRequest querySCCRequest = new QuerySCCRequest(client.getUserContext());</span>
+<span class="nc" id="L1677">            querySCCRequest.setFcn(QuerySCCRequest.GETBLOCKBYNUMBER);</span>
+<span class="nc" id="L1678">            querySCCRequest.setArgs(new String[] {name, Long.toUnsignedString(blockNumber)});</span>
+
+<span class="nc" id="L1680">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposal(querySCCRequest, Collections.singletonList(peer));</span>
+<span class="nc" id="L1681">            proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc bnc" id="L1683" title="All 2 branches missed.">            if (proposalResponse.getStatus().getStatus() != 200) {</span>
+<span class="nc" id="L1684">                throw new PeerException(format(&quot;Unable to query block by number %d for channel %s from peer %s with message %s&quot;,</span>
+<span class="nc" id="L1685">                        blockNumber,</span>
+                        name,
+<span class="nc" id="L1687">                        peer.getName(),</span>
+<span class="nc" id="L1688">                        proposalResponse.getMessage()));</span>
+            }
+<span class="nc" id="L1690">            responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));</span>
+<span class="nc" id="L1691">        } catch (Exception e) {</span>
+<span class="nc" id="L1692">            String emsg = format(&quot;queryBlockByNumber blockNumber %d peer %s channel %s error %s&quot;,</span>
+<span class="nc" id="L1693">                    blockNumber,</span>
+<span class="nc" id="L1694">                    peer.getName(),</span>
+                    name,
+<span class="nc" id="L1696">                    e.getMessage());</span>
+<span class="nc" id="L1697">            logger.error(emsg, e);</span>
+<span class="nc" id="L1698">            throw new ProposalException(emsg, e);</span>
+<span class="nc" id="L1699">        }</span>
+
+<span class="nc" id="L1701">        return responseBlock;</span>
+    }
+
+    /**
+     * query this channel for a Block by a TransactionID contained in the block
+     * The request is sent to a random peer in the channel
+     *
+     * @param txID the transactionID to query on
+     * @return the {@link BlockInfo} for the Block containing the transaction
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockInfo queryBlockByTransactionID(String txID) throws InvalidArgumentException, ProposalException {
+
+<span class="nc" id="L1715">        return queryBlockByTransactionID(getRandomPeer(), txID);</span>
+    }
+
+    /**
+     * query a peer in this channel for a Block by a TransactionID contained in the block
+     *
+     * @param peer the peer to send the request to
+     * @param txID the transactionID to query on
+     * @return the {@link BlockInfo} for the Block containing the transaction
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockInfo queryBlockByTransactionID(Peer peer, String txID) throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L1729">        checkChannelState();</span>
+<span class="fc" id="L1730">        checkPeer(peer);</span>
+
+<span class="pc bpc" id="L1732" title="1 of 2 branches missed.">        if (txID == null) {</span>
+<span class="fc" id="L1733">            throw new InvalidArgumentException(&quot;TxID parameter is null.&quot;);</span>
+        }
+
+        ProposalResponse proposalResponse;
+        BlockInfo responseBlock;
+        try {
+<span class="nc" id="L1739">            logger.debug(&quot;queryBlockByTransactionID with txID &quot; + txID + &quot; \n    to peer&quot; + peer.getName() + &quot; on channel &quot; + name);</span>
+<span class="nc" id="L1740">            QuerySCCRequest querySCCRequest = new QuerySCCRequest(client.getUserContext());</span>
+<span class="nc" id="L1741">            querySCCRequest.setFcn(QuerySCCRequest.GETBLOCKBYTXID);</span>
+<span class="nc" id="L1742">            querySCCRequest.setArgs(new String[] {name, txID});</span>
+
+<span class="nc" id="L1744">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposal(querySCCRequest, Collections.singletonList(peer));</span>
+<span class="nc" id="L1745">            proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc bnc" id="L1747" title="All 2 branches missed.">            if (proposalResponse.getStatus().getStatus() != 200) {</span>
+<span class="nc" id="L1748">                throw new PeerException(format(&quot;Unable to query block by TxID %s%n    for channel %s from peer %s with message %s&quot;,</span>
+                        txID,
+                        name,
+<span class="nc" id="L1751">                        peer.getName(),</span>
+<span class="nc" id="L1752">                        proposalResponse.getMessage()));</span>
+            }
+<span class="nc" id="L1754">            responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));</span>
+<span class="nc" id="L1755">        } catch (Exception e) {</span>
+<span class="nc" id="L1756">            String emsg = format(&quot;QueryBlockByTransactionID TxID %s%n peer %s channel %s error %s&quot;,</span>
+                    txID,
+<span class="nc" id="L1758">                    peer.getName(),</span>
+                    name,
+<span class="nc" id="L1760">                    e.getMessage());</span>
+<span class="nc" id="L1761">            logger.error(emsg, e);</span>
+<span class="nc" id="L1762">            throw new ProposalException(emsg, e);</span>
+<span class="nc" id="L1763">        }</span>
+
+<span class="nc" id="L1765">        return responseBlock;</span>
+    }
+
+    /**
+     * query this channel for chain information.
+     * The request is sent to a random peer in the channel
+     *
+     * @return a {@link BlockchainInfo} object containing the chain info requested
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockchainInfo queryBlockchainInfo() throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L1778">        return queryBlockchainInfo(getRandomPeer());</span>
+    }
+
+    /**
+     * query for chain information
+     *
+     * @param peer The peer to send the request to
+     * @return a {@link BlockchainInfo} object containing the chain info requested
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public BlockchainInfo queryBlockchainInfo(Peer peer) throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L1791">        checkChannelState();</span>
+<span class="nc" id="L1792">        checkPeer(peer);</span>
+
+        BlockchainInfo response;
+        try {
+<span class="nc" id="L1796">            logger.debug(&quot;queryBlockchainInfo to peer &quot; + peer.getName() + &quot; on channel &quot; + name);</span>
+<span class="nc" id="L1797">            QuerySCCRequest querySCCRequest = new QuerySCCRequest(client.getUserContext());</span>
+<span class="nc" id="L1798">            querySCCRequest.setFcn(QuerySCCRequest.GETCHAININFO);</span>
+<span class="nc" id="L1799">            querySCCRequest.setArgs(new String[] {name});</span>
+
+<span class="nc" id="L1801">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposal(querySCCRequest, Collections.singletonList(peer));</span>
+<span class="nc" id="L1802">            ProposalResponse proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc bnc" id="L1804" title="All 2 branches missed.">            if (proposalResponse.getStatus().getStatus() != 200) {</span>
+<span class="nc" id="L1805">                throw new PeerException(format(&quot;Unable to query block channel info for channel %s from peer %s with message %s&quot;,</span>
+                        name,
+<span class="nc" id="L1807">                        peer.getName(),</span>
+<span class="nc" id="L1808">                        proposalResponse.getMessage()));</span>
+            }
+<span class="nc" id="L1810">            response = new BlockchainInfo(Ledger.BlockchainInfo.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));</span>
+<span class="nc" id="L1811">        } catch (Exception e) {</span>
+<span class="nc" id="L1812">            String emsg = format(&quot;queryBlockchainInfo peer %s channel %s error %s&quot;,</span>
+<span class="nc" id="L1813">                    peer.getName(),</span>
+                    name,
+<span class="nc" id="L1815">                    e.getMessage());</span>
+<span class="nc" id="L1816">            logger.error(emsg, e);</span>
+<span class="nc" id="L1817">            throw new ProposalException(emsg, e);</span>
+<span class="nc" id="L1818">        }</span>
+
+<span class="nc" id="L1820">        return response;</span>
+    }
+
+    /**
+     * Query this channel for a Fabric Transaction given its transactionID.
+     * The request is sent to a random peer in the channel.
+     *
+     * @param txID the ID of the transaction
+     * @return a {@link TransactionInfo}
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+    public TransactionInfo queryTransactionByID(String txID) throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L1834">        return queryTransactionByID(getRandomPeer(), txID);</span>
+    }
+
+    /**
+     * Query for a Fabric Transaction given its transactionID
+     *
+     * @param txID the ID of the transaction
+     * @param peer the peer to send the request to
+     * @return a {@link TransactionInfo}
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+    public TransactionInfo queryTransactionByID(Peer peer, String txID) throws ProposalException, InvalidArgumentException {
+
+<span class="fc" id="L1848">        checkChannelState();</span>
+<span class="fc" id="L1849">        checkPeer(peer);</span>
+
+<span class="pc bpc" id="L1851" title="1 of 2 branches missed.">        if (txID == null) {</span>
+<span class="fc" id="L1852">            throw new InvalidArgumentException(&quot;TxID parameter is null.&quot;);</span>
+        }
+
+        TransactionInfo transactionInfo;
+        try {
+<span class="nc" id="L1857">            logger.debug(&quot;queryTransactionByID with txID &quot; + txID + &quot;\n    from peer &quot; + peer.getName() + &quot; on channel &quot; + name);</span>
+<span class="nc" id="L1858">            QuerySCCRequest querySCCRequest = new QuerySCCRequest(client.getUserContext());</span>
+<span class="nc" id="L1859">            querySCCRequest.setFcn(QuerySCCRequest.GETTRANSACTIONBYID);</span>
+<span class="nc" id="L1860">            querySCCRequest.setArgs(new String[] {name, txID});</span>
+
+<span class="nc" id="L1862">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposal(querySCCRequest, Collections.singletonList(peer));</span>
+<span class="nc" id="L1863">            ProposalResponse proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc bnc" id="L1865" title="All 2 branches missed.">            if (proposalResponse.getStatus().getStatus() != 200) {</span>
+<span class="nc" id="L1866">                throw new PeerException(format(&quot;Unable to query transaction info for ID %s%n for channel %s from peer %s with message %s&quot;,</span>
+                        txID,
+                        name,
+<span class="nc" id="L1869">                        peer.getName(),</span>
+<span class="nc" id="L1870">                        proposalResponse.getMessage()));</span>
+            }
+<span class="nc" id="L1872">            transactionInfo = new TransactionInfo(txID, ProcessedTransaction.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));</span>
+<span class="nc" id="L1873">        } catch (Exception e) {</span>
+<span class="nc" id="L1874">            String emsg = format(&quot;queryTransactionByID TxID %s%n peer %s channel %s error %s&quot;,</span>
+                    txID,
+<span class="nc" id="L1876">                    peer.getName(),</span>
+                    name,
+<span class="nc" id="L1878">                    e.getMessage());</span>
+<span class="nc" id="L1879">            logger.error(emsg, e);</span>
+<span class="nc" id="L1880">            throw new ProposalException(emsg, e);</span>
+<span class="nc" id="L1881">        }</span>
+
+<span class="nc" id="L1883">        return transactionInfo;</span>
+    }
+
+    Set&lt;String&gt; queryChannels(Peer peer) throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L1888">        checkPeer(peer);</span>
+
+<span class="pc bpc" id="L1890" title="1 of 2 branches missed.">        if (!isSystemChannel()) {</span>
+<span class="nc" id="L1891">            throw new InvalidArgumentException(&quot;queryChannels should only be invoked on system channel.&quot;);</span>
+        }
+
+        try {
+
+<span class="fc" id="L1896">            TransactionContext context = getTransactionContext();</span>
+
+<span class="fc" id="L1898">            FabricProposal.Proposal q = QueryPeerChannelsBuilder.newBuilder().context(context).build();</span>
+
+<span class="fc" id="L1900">            SignedProposal qProposal = getSignedProposal(context, q);</span>
+<span class="fc" id="L1901">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);</span>
+
+<span class="pc bpc" id="L1903" title="1 of 2 branches missed.">            if (null == proposalResponses) {</span>
+<span class="nc" id="L1904">                throw new ProposalException(format(&quot;Peer %s channel query return with null for responses&quot;, peer.getName()));</span>
+            }
+
+<span class="pc bpc" id="L1907" title="1 of 2 branches missed.">            if (proposalResponses.size() != 1) {</span>
+
+<span class="nc" id="L1909">                throw new ProposalException(format(&quot;Peer %s channel query expected one response but got back %d  responses &quot;, peer.getName(), proposalResponses.size()));</span>
+            }
+
+<span class="fc" id="L1912">            ProposalResponse proposalResponse = proposalResponses.iterator().next();</span>
+<span class="pc bpc" id="L1913" title="1 of 2 branches missed.">            if (proposalResponse.getStatus() != ChaincodeResponse.Status.SUCCESS) {</span>
+<span class="fc" id="L1914">                throw new ProposalException(format(&quot;Failed exception message is %s, status is %d&quot;, proposalResponse.getMessage(), proposalResponse.getStatus().getStatus()));</span>
+
+            }
+
+<span class="nc" id="L1918">            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();</span>
+<span class="nc bnc" id="L1919" title="All 2 branches missed.">            if (null == fabricResponse) {</span>
+<span class="nc" id="L1920">                throw new ProposalException(format(&quot;Peer %s channel query return with empty fabric response&quot;, peer.getName()));</span>
+
+            }
+
+<span class="nc" id="L1924">            final Response fabricResponseResponse = fabricResponse.getResponse();</span>
+
+<span class="nc bnc" id="L1926" title="All 2 branches missed.">            if (null == fabricResponseResponse) { //not likely but check it.</span>
+<span class="nc" id="L1927">                throw new ProposalException(format(&quot;Peer %s channel query return with empty fabricResponseResponse&quot;, peer.getName()));</span>
+            }
+
+<span class="nc bnc" id="L1930" title="All 2 branches missed.">            if (200 != fabricResponseResponse.getStatus()) {</span>
+<span class="nc" id="L1931">                throw new ProposalException(format(&quot;Peer %s channel query expected 200, actual returned was: %d. &quot;</span>
+<span class="nc" id="L1932">                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));</span>
+
+            }
+
+<span class="nc" id="L1936">            ChannelQueryResponse qr = ChannelQueryResponse.parseFrom(fabricResponseResponse.getPayload());</span>
+
+<span class="nc" id="L1938">            Set&lt;String&gt; ret = new HashSet&lt;&gt;(qr.getChannelsCount());</span>
+
+<span class="nc bnc" id="L1940" title="All 2 branches missed.">            for (Query.ChannelInfo x : qr.getChannelsList()) {</span>
+<span class="nc" id="L1941">                ret.add(x.getChannelId());</span>
+
+<span class="nc" id="L1943">            }</span>
+<span class="nc" id="L1944">            return ret;</span>
+
+<span class="fc" id="L1946">        } catch (ProposalException e) {</span>
+<span class="fc" id="L1947">            throw e;</span>
+<span class="nc" id="L1948">        } catch (Exception e) {</span>
+<span class="nc" id="L1949">            throw new ProposalException(format(&quot;Query for peer %s channels failed. &quot; + e.getMessage(), name), e);</span>
+
+        }
+
+    }
+
+    List&lt;ChaincodeInfo&gt; queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+
+<span class="nc" id="L1957">        checkPeer(peer);</span>
+
+<span class="nc bnc" id="L1959" title="All 2 branches missed.">        if (!isSystemChannel()) {</span>
+<span class="nc" id="L1960">            throw new InvalidArgumentException(&quot;queryInstalledChaincodes should only be invoked on system channel.&quot;);</span>
+        }
+
+        try {
+
+<span class="nc" id="L1965">            TransactionContext context = getTransactionContext();</span>
+
+<span class="nc" id="L1967">            FabricProposal.Proposal q = QueryInstalledChaincodesBuilder.newBuilder().context(context).build();</span>
+
+<span class="nc" id="L1969">            SignedProposal qProposal = getSignedProposal(context, q);</span>
+<span class="nc" id="L1970">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);</span>
+
+<span class="nc bnc" id="L1972" title="All 2 branches missed.">            if (null == proposalResponses) {</span>
+<span class="nc" id="L1973">                throw new ProposalException(format(&quot;Peer %s channel query return with null for responses&quot;, peer.getName()));</span>
+            }
+
+<span class="nc bnc" id="L1976" title="All 2 branches missed.">            if (proposalResponses.size() != 1) {</span>
+
+<span class="nc" id="L1978">                throw new ProposalException(format(&quot;Peer %s channel query expected one response but got back %d  responses &quot;, peer.getName(), proposalResponses.size()));</span>
+            }
+
+<span class="nc" id="L1981">            ProposalResponse proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc" id="L1983">            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();</span>
+<span class="nc bnc" id="L1984" title="All 2 branches missed.">            if (null == fabricResponse) {</span>
+<span class="nc" id="L1985">                throw new ProposalException(format(&quot;Peer %s channel query return with empty fabric response&quot;, peer.getName()));</span>
+
+            }
+
+<span class="nc" id="L1989">            final Response fabricResponseResponse = fabricResponse.getResponse();</span>
+
+<span class="nc bnc" id="L1991" title="All 2 branches missed.">            if (null == fabricResponseResponse) { //not likely but check it.</span>
+<span class="nc" id="L1992">                throw new ProposalException(format(&quot;Peer %s channel query return with empty fabricResponseResponse&quot;, peer.getName()));</span>
+            }
+
+<span class="nc bnc" id="L1995" title="All 2 branches missed.">            if (200 != fabricResponseResponse.getStatus()) {</span>
+<span class="nc" id="L1996">                throw new ProposalException(format(&quot;Peer %s channel query expected 200, actual returned was: %d. &quot;</span>
+<span class="nc" id="L1997">                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));</span>
+
+            }
+
+<span class="nc" id="L2001">            ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());</span>
+
+<span class="nc" id="L2003">            return chaincodeQueryResponse.getChaincodesList();</span>
+
+<span class="nc" id="L2005">        } catch (ProposalException e) {</span>
+<span class="nc" id="L2006">            throw e;</span>
+<span class="nc" id="L2007">        } catch (Exception e) {</span>
+<span class="nc" id="L2008">            throw new ProposalException(format(&quot;Query for peer %s channels failed. &quot; + e.getMessage(), name), e);</span>
+
+        }
+
+    }
+
+    /**
+     * Query peer for chaincode that has been instantiated
+     *
+     * @param peer The peer to query.
+     * @return A list of ChaincodeInfo @see {@link ChaincodeInfo}
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public List&lt;ChaincodeInfo&gt; queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+
+<span class="nc" id="L2025">        checkChannelState();</span>
+<span class="nc" id="L2026">        checkPeer(peer);</span>
+
+        try {
+
+<span class="nc" id="L2030">            TransactionContext context = getTransactionContext();</span>
+
+<span class="nc" id="L2032">            FabricProposal.Proposal q = QueryInstantiatedChaincodesBuilder.newBuilder().context(context).build();</span>
+
+<span class="nc" id="L2034">            SignedProposal qProposal = getSignedProposal(context, q);</span>
+<span class="nc" id="L2035">            Collection&lt;ProposalResponse&gt; proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);</span>
+
+<span class="nc bnc" id="L2037" title="All 2 branches missed.">            if (null == proposalResponses) {</span>
+<span class="nc" id="L2038">                throw new ProposalException(format(&quot;Peer %s channel query return with null for responses&quot;, peer.getName()));</span>
+            }
+
+<span class="nc bnc" id="L2041" title="All 2 branches missed.">            if (proposalResponses.size() != 1) {</span>
+
+<span class="nc" id="L2043">                throw new ProposalException(format(&quot;Peer %s channel query expected one response but got back %d  responses &quot;, peer.getName(), proposalResponses.size()));</span>
+            }
+
+<span class="nc" id="L2046">            ProposalResponse proposalResponse = proposalResponses.iterator().next();</span>
+
+<span class="nc" id="L2048">            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();</span>
+<span class="nc bnc" id="L2049" title="All 2 branches missed.">            if (null == fabricResponse) {</span>
+<span class="nc" id="L2050">                throw new ProposalException(format(&quot;Peer %s channel query return with empty fabric response&quot;, peer.getName()));</span>
+
+            }
+
+<span class="nc" id="L2054">            final Response fabricResponseResponse = fabricResponse.getResponse();</span>
+
+<span class="nc bnc" id="L2056" title="All 2 branches missed.">            if (null == fabricResponseResponse) { //not likely but check it.</span>
+<span class="nc" id="L2057">                throw new ProposalException(format(&quot;Peer %s channel query return with empty fabricResponseResponse&quot;, peer.getName()));</span>
+            }
+
+<span class="nc bnc" id="L2060" title="All 2 branches missed.">            if (200 != fabricResponseResponse.getStatus()) {</span>
+<span class="nc" id="L2061">                throw new ProposalException(format(&quot;Peer %s channel query expected 200, actual returned was: %d. &quot;</span>
+<span class="nc" id="L2062">                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));</span>
+
+            }
+
+<span class="nc" id="L2066">            ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());</span>
+
+<span class="nc" id="L2068">            return chaincodeQueryResponse.getChaincodesList();</span>
+
+<span class="nc" id="L2070">        } catch (ProposalException e) {</span>
+<span class="nc" id="L2071">            throw e;</span>
+<span class="nc" id="L2072">        } catch (Exception e) {</span>
+<span class="nc" id="L2073">            throw new ProposalException(format(&quot;Query for peer %s channels failed. &quot; + e.getMessage(), name), e);</span>
+
+        }
+
+    }
+
+    /**
+     * Send a transaction  proposal.
+     *
+     * @param transactionProposalRequest The transaction proposal to be sent to all the peers.
+     * @return responses from peers.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public Collection&lt;ProposalResponse&gt; sendTransactionProposal(TransactionProposalRequest transactionProposalRequest) throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L2089">        return sendProposal(transactionProposalRequest, peers);</span>
+    }
+
+    /**
+     * Send a transaction proposal to specific peers.
+     *
+     * @param transactionProposalRequest The transaction proposal to be sent to the peers.
+     * @param peers
+     * @return responses from peers.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+    public Collection&lt;ProposalResponse&gt; sendTransactionProposal(TransactionProposalRequest transactionProposalRequest, Collection&lt;Peer&gt; peers) throws ProposalException, InvalidArgumentException {
+
+<span class="nc" id="L2103">        return sendProposal(transactionProposalRequest, peers);</span>
+    }
+
+    /**
+     * Send Query proposal
+     *
+     * @param queryByChaincodeRequest
+     * @return Collection proposal responses.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public Collection&lt;ProposalResponse&gt; queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest) throws InvalidArgumentException, ProposalException {
+<span class="nc" id="L2116">        return sendProposal(queryByChaincodeRequest, peers);</span>
+    }
+
+    /**
+     * Send Query proposal
+     *
+     * @param queryByChaincodeRequest
+     * @param peers
+     * @return responses from peers.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public Collection&lt;ProposalResponse&gt; queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest, Collection&lt;Peer&gt; peers) throws InvalidArgumentException, ProposalException {
+<span class="nc" id="L2130">        return sendProposal(queryByChaincodeRequest, peers);</span>
+    }
+
+    private Collection&lt;ProposalResponse&gt; sendProposal(TransactionRequest proposalRequest, Collection&lt;Peer&gt; peers) throws InvalidArgumentException, ProposalException {
+
+<span class="fc" id="L2135">        checkChannelState();</span>
+<span class="nc" id="L2136">        checkPeers(peers);</span>
+
+<span class="nc bnc" id="L2138" title="All 2 branches missed.">        if (null == proposalRequest) {</span>
+<span class="nc" id="L2139">            throw new InvalidArgumentException(&quot;sendProposal queryProposalRequest is null&quot;);</span>
+        }
+
+<span class="nc" id="L2142">        proposalRequest.setSubmitted();</span>
+
+        try {
+<span class="nc" id="L2145">            TransactionContext transactionContext = getTransactionContext(proposalRequest.getUserContext());</span>
+<span class="nc" id="L2146">            transactionContext.verify(proposalRequest.doVerify());</span>
+<span class="nc" id="L2147">            transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());</span>
+
+            // Protobuf message builder
+<span class="nc" id="L2150">            ProposalBuilder proposalBuilder = ProposalBuilder.newBuilder();</span>
+<span class="nc" id="L2151">            proposalBuilder.context(transactionContext);</span>
+<span class="nc" id="L2152">            proposalBuilder.request(proposalRequest);</span>
+
+<span class="nc" id="L2154">            SignedProposal invokeProposal = getSignedProposal(transactionContext, proposalBuilder.build());</span>
+<span class="nc" id="L2155">            return sendProposalToPeers(peers, invokeProposal, transactionContext);</span>
+<span class="nc" id="L2156">        } catch (ProposalException e) {</span>
+<span class="nc" id="L2157">            throw e;</span>
+
+<span class="nc" id="L2159">        } catch (Exception e) {</span>
+<span class="nc" id="L2160">            ProposalException exp = new ProposalException(e);</span>
+<span class="nc" id="L2161">            logger.error(exp.getMessage(), exp);</span>
+<span class="nc" id="L2162">            throw exp;</span>
+        }
+    }
+
+    private Collection&lt;ProposalResponse&gt; sendProposalToPeers(Collection&lt;Peer&gt; peers,
+                                                             SignedProposal signedProposal,
+                                                             TransactionContext transactionContext) throws InvalidArgumentException, ProposalException {
+<span class="fc" id="L2169">        checkPeers(peers);</span>
+
+        class Pair {
+            private final Peer peer;
+            private final Future&lt;FabricProposalResponse.ProposalResponse&gt; future;
+
+<span class="fc" id="L2175">            private Pair(Peer peer, Future&lt;FabricProposalResponse.ProposalResponse&gt; future) {</span>
+<span class="fc" id="L2176">                this.peer = peer;</span>
+<span class="fc" id="L2177">                this.future = future;</span>
+<span class="fc" id="L2178">            }</span>
+        }
+<span class="fc" id="L2180">        List&lt;Pair&gt; peerFuturePairs = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L2181" title="All 2 branches covered.">        for (Peer peer : peers) {</span>
+<span class="fc" id="L2182">            logger.debug(format(&quot;Channel %s send proposal to peer %s at url %s&quot;,</span>
+<span class="fc" id="L2183">                    name, peer.getName(), peer.getUrl()));</span>
+
+<span class="pc bpc" id="L2185" title="1 of 2 branches missed.">            if (null != diagnosticFileDumper) {</span>
+<span class="nc" id="L2186">                logger.trace(format(&quot;Sending to channel %s, peer: %s, proposal: %s&quot;, name, peer.getName(),</span>
+<span class="nc" id="L2187">                        diagnosticFileDumper.createDiagnosticProtobufFile(signedProposal.toByteArray())));</span>
+
+            }
+
+            Future&lt;FabricProposalResponse.ProposalResponse&gt; proposalResponseListenableFuture;
+            try {
+<span class="fc" id="L2193">                proposalResponseListenableFuture = peer.sendProposalAsync(signedProposal);</span>
+<span class="fc" id="L2194">            } catch (Exception e) {</span>
+<span class="fc" id="L2195">                proposalResponseListenableFuture = new CompletableFuture&lt;&gt;();</span>
+<span class="fc" id="L2196">                ((CompletableFuture) proposalResponseListenableFuture).completeExceptionally(e);</span>
+
+<span class="fc" id="L2198">            }</span>
+<span class="fc" id="L2199">            peerFuturePairs.add(new Pair(peer, proposalResponseListenableFuture));</span>
+
+<span class="fc" id="L2201">        }</span>
+
+<span class="fc" id="L2203">        Collection&lt;ProposalResponse&gt; proposalResponses = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L2204" title="All 2 branches covered.">        for (Pair peerFuturePair : peerFuturePairs) {</span>
+
+<span class="fc" id="L2206">            FabricProposalResponse.ProposalResponse fabricResponse = null;</span>
+            String message;
+<span class="fc" id="L2208">            int status = 500;</span>
+<span class="fc" id="L2209">            final String peerName = peerFuturePair.peer.getName();</span>
+            try {
+<span class="nc" id="L2211">                fabricResponse = peerFuturePair.future.get(transactionContext.getProposalWaitTime(), TimeUnit.MILLISECONDS);</span>
+<span class="nc" id="L2212">                message = fabricResponse.getResponse().getMessage();</span>
+<span class="nc" id="L2213">                status = fabricResponse.getResponse().getStatus();</span>
+<span class="nc" id="L2214">                logger.debug(format(&quot;Channel %s got back from peer %s status: %d, message: %s&quot;,</span>
+<span class="nc" id="L2215">                        name, peerName, status, message));</span>
+<span class="nc bnc" id="L2216" title="All 2 branches missed.">                if (null != diagnosticFileDumper) {</span>
+<span class="nc" id="L2217">                    logger.trace(format(&quot;Got back from channel %s, peer: %s, proposal response: %s&quot;, name, peerName,</span>
+<span class="nc" id="L2218">                            diagnosticFileDumper.createDiagnosticProtobufFile(fabricResponse.toByteArray())));</span>
+
+                }
+<span class="nc" id="L2221">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L2222">                message = &quot;Sending proposal to &quot; + peerName + &quot; failed because of interruption&quot;;</span>
+<span class="nc" id="L2223">                logger.error(message, e);</span>
+<span class="nc" id="L2224">            } catch (TimeoutException e) {</span>
+<span class="nc" id="L2225">                message = format(&quot;Sending proposal to &quot; + peerName + &quot; failed because of timeout(%d milliseconds) expiration&quot;,</span>
+<span class="nc" id="L2226">                        transactionContext.getProposalWaitTime());</span>
+<span class="nc" id="L2227">                logger.error(message, e);</span>
+<span class="fc" id="L2228">            } catch (ExecutionException e) {</span>
+<span class="fc" id="L2229">                Throwable cause = e.getCause();</span>
+<span class="fc bfc" id="L2230" title="All 2 branches covered.">                if (cause instanceof Error) {</span>
+<span class="fc" id="L2231">                    String emsg = &quot;Sending proposal to &quot; + peerName + &quot; failed because of &quot; + cause.getMessage();</span>
+<span class="fc" id="L2232">                    logger.error(emsg, new Exception(cause)); //wrapped in exception to get full stack trace.</span>
+<span class="fc" id="L2233">                    throw (Error) cause;</span>
+                } else {
+<span class="fc bfc" id="L2235" title="All 2 branches covered.">                    if (cause instanceof StatusRuntimeException) {</span>
+<span class="fc" id="L2236">                        message = format(&quot;Sending proposal to &quot; + peerName + &quot; failed because of: gRPC failure=%s&quot;,</span>
+<span class="fc" id="L2237">                                ((StatusRuntimeException) cause).getStatus());</span>
+                    } else {
+<span class="fc" id="L2239">                        message = format(&quot;Sending proposal to &quot; + peerName + &quot; failed because of: %s&quot;, cause.getMessage());</span>
+                    }
+<span class="fc" id="L2241">                    logger.error(message, new Exception(cause)); //wrapped in exception to get full stack trace.</span>
+                }
+<span class="nc" id="L2243">            }</span>
+
+<span class="fc" id="L2245">            ProposalResponse proposalResponse = new ProposalResponse(transactionContext.getTxID(),</span>
+<span class="fc" id="L2246">                    transactionContext.getChannelID(), status, message);</span>
+<span class="fc" id="L2247">            proposalResponse.setProposalResponse(fabricResponse);</span>
+<span class="fc" id="L2248">            proposalResponse.setProposal(signedProposal);</span>
+<span class="fc" id="L2249">            proposalResponse.setPeer(peerFuturePair.peer);</span>
+
+<span class="pc bpc" id="L2251" title="3 of 4 branches missed.">            if (fabricResponse != null &amp;&amp; transactionContext.getVerify()) {</span>
+<span class="nc" id="L2252">                proposalResponse.verify(client.getCryptoSuite());</span>
+            }
+
+<span class="fc" id="L2255">            proposalResponses.add(proposalResponse);</span>
+<span class="fc" id="L2256">        }</span>
+
+<span class="fc" id="L2258">        return proposalResponses;</span>
+    }
+
+    /////////////////////////////////////////////////////////
+    // transactions order
+
+    /**
+     * Send transaction to one of the orderers on the channel using a specific user context.
+     *
+     * @param proposalResponses The proposal responses to be sent to the orderer.
+     * @param userContext       The usercontext used for signing transaction.
+     * @return a future allowing access to the result of the transaction invocation once complete.
+     */
+    public CompletableFuture&lt;TransactionEvent&gt; sendTransaction(Collection&lt;ProposalResponse&gt; proposalResponses, User userContext) {
+
+<span class="nc" id="L2273">        return sendTransaction(proposalResponses, orderers, userContext);</span>
+
+    }
+
+    /**
+     * Send transaction to one of the orderers on the channel using the usercontext set on the client.
+     *
+     * @param proposalResponses .
+     * @return a future allowing access to the result of the transaction invocation once complete.
+     */
+    public CompletableFuture&lt;TransactionEvent&gt; sendTransaction(Collection&lt;ProposalResponse&gt; proposalResponses) {
+
+<span class="fc" id="L2285">        return sendTransaction(proposalResponses, orderers);</span>
+
+    }
+
+    /**
+     * Send transaction to one of the specified orderers using the usercontext set on the client..
+     *
+     * @param proposalResponses The proposal responses to be sent to the orderer
+     * @param orderers          The orderers to send the transaction to.
+     * @return a future allowing access to the result of the transaction invocation once complete.
+     */
+
+    public CompletableFuture&lt;TransactionEvent&gt; sendTransaction(Collection&lt;ProposalResponse&gt; proposalResponses, Collection&lt;Orderer&gt; orderers) {
+
+<span class="fc" id="L2299">        return sendTransaction(proposalResponses, orderers, client.getUserContext());</span>
+    }
+
+    /**
+     * Send transaction to one of a specified set of orderers with the specified user context.
+     *
+     * @param proposalResponses
+     * @param orderers
+     * @return Future allowing access to the result of the transaction invocation.
+     */
+
+    public CompletableFuture&lt;TransactionEvent&gt; sendTransaction(Collection&lt;ProposalResponse&gt; proposalResponses, Collection&lt;Orderer&gt; orderers, User userContext) {
+        try {
+
+<span class="nc" id="L2313">            checkChannelState();</span>
+<span class="nc" id="L2314">            userContextCheck(userContext);</span>
+
+<span class="nc bnc" id="L2316" title="All 2 branches missed.">            if (null == proposalResponses) {</span>
+
+<span class="nc" id="L2318">                throw new InvalidArgumentException(&quot;sendTransaction proposalResponses was null&quot;);</span>
+            }
+
+<span class="nc bnc" id="L2321" title="All 2 branches missed.">            if (null == orderers) {</span>
+<span class="nc" id="L2322">                throw new InvalidArgumentException(&quot;sendTransaction Orderers is null&quot;);</span>
+            }
+<span class="nc bnc" id="L2324" title="All 2 branches missed.">            if (orderers.isEmpty()) {</span>
+<span class="nc" id="L2325">                throw new InvalidArgumentException(&quot;sendTransaction Orderers to send to is empty.&quot;);</span>
+            }
+
+<span class="nc bnc" id="L2328" title="All 2 branches missed.">            if (config.getProposalConsistencyValidation()) {</span>
+
+<span class="nc bnc" id="L2330" title="All 2 branches missed.">                if (1 != SDKUtils.getProposalConsistencySets(proposalResponses).size()) {</span>
+<span class="nc" id="L2331">                    throw new IllegalArgumentException(&quot;The proposal responses do not have consistent read write sets&quot;);</span>
+
+                }
+
+            }
+
+<span class="nc" id="L2337">            List&lt;FabricProposalResponse.Endorsement&gt; ed = new LinkedList&lt;&gt;();</span>
+<span class="nc" id="L2338">            FabricProposal.Proposal proposal = null;</span>
+<span class="nc" id="L2339">            ByteString proposalResponsePayload = null;</span>
+<span class="nc" id="L2340">            String proposalTransactionID = null;</span>
+
+<span class="nc bnc" id="L2342" title="All 2 branches missed.">            for (ProposalResponse sdkProposalResponse : proposalResponses) {</span>
+<span class="nc" id="L2343">                ed.add(sdkProposalResponse.getProposalResponse().getEndorsement());</span>
+<span class="nc bnc" id="L2344" title="All 2 branches missed.">                if (proposal == null) {</span>
+<span class="nc" id="L2345">                    proposal = sdkProposalResponse.getProposal();</span>
+<span class="nc" id="L2346">                    proposalTransactionID = sdkProposalResponse.getTransactionID();</span>
+<span class="nc" id="L2347">                    proposalResponsePayload = sdkProposalResponse.getProposalResponse().getPayload();</span>
+
+                }
+<span class="nc" id="L2350">            }</span>
+
+<span class="nc" id="L2352">            TransactionBuilder transactionBuilder = TransactionBuilder.newBuilder();</span>
+
+<span class="nc" id="L2354">            Payload transactionPayload = transactionBuilder</span>
+<span class="nc" id="L2355">                    .chaincodeProposal(proposal)</span>
+<span class="nc" id="L2356">                    .endorsements(ed)</span>
+<span class="nc" id="L2357">                    .proposalResponsePayload(proposalResponsePayload).build();</span>
+
+<span class="nc" id="L2359">            Envelope transactionEnvelope = createTransactionEnvelope(transactionPayload, userContext);</span>
+
+<span class="nc" id="L2361">            CompletableFuture&lt;TransactionEvent&gt; sret = registerTxListener(proposalTransactionID);</span>
+<span class="nc" id="L2362">            logger.debug(format(&quot;Channel %s sending transaction to orderer(s) with TxID %s &quot;, name, proposalTransactionID));</span>
+
+<span class="nc" id="L2364">            boolean success = false;</span>
+
+<span class="nc" id="L2366">            BroadcastResponse resp = null;</span>
+<span class="nc bnc" id="L2367" title="All 2 branches missed.">            for (Orderer orderer : orderers) {</span>
+
+                try {
+
+<span class="nc bnc" id="L2371" title="All 2 branches missed.">                    if (null != diagnosticFileDumper) {</span>
+<span class="nc" id="L2372">                        logger.trace(format(&quot;Sending to channel %s, orderer: %s, transaction: %s&quot;, name, orderer.getName(),</span>
+<span class="nc" id="L2373">                                diagnosticFileDumper.createDiagnosticProtobufFile(transactionEnvelope.toByteArray())));</span>
+
+                    }
+
+<span class="nc" id="L2377">                    resp = orderer.sendTransaction(transactionEnvelope);</span>
+<span class="nc bnc" id="L2378" title="All 2 branches missed.">                    if (resp.getStatus() == Status.SUCCESS) {</span>
+
+<span class="nc" id="L2380">                        success = true;</span>
+<span class="nc" id="L2381">                        break;</span>
+
+                    }
+<span class="nc" id="L2384">                } catch (Exception e) {</span>
+<span class="nc" id="L2385">                    String emsg = format(&quot;Channel %s unsuccessful sendTransaction to orderer&quot;, name);</span>
+<span class="nc bnc" id="L2386" title="All 2 branches missed.">                    if (resp != null) {</span>
+<span class="nc" id="L2387">                        emsg = format(&quot;Channel %s unsuccessful sendTransaction to orderer. Status %s&quot;, name, resp.getStatus());</span>
+                    }
+
+<span class="nc" id="L2390">                    logger.error(emsg, e);</span>
+
+<span class="nc" id="L2392">                }</span>
+
+<span class="nc" id="L2394">            }</span>
+
+<span class="nc bnc" id="L2396" title="All 2 branches missed.">            if (success) {</span>
+<span class="nc" id="L2397">                logger.debug(format(&quot;Channel %s successful sent to Orderer transaction id: %s&quot;, name, proposalTransactionID));</span>
+<span class="nc" id="L2398">                return sret;</span>
+            } else {
+<span class="nc" id="L2400">                String emsg = format(&quot;Channel %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL&quot;, name, proposalTransactionID);</span>
+<span class="nc" id="L2401">                CompletableFuture&lt;TransactionEvent&gt; ret = new CompletableFuture&lt;&gt;();</span>
+<span class="nc" id="L2402">                ret.completeExceptionally(new Exception(emsg));</span>
+<span class="nc" id="L2403">                return ret;</span>
+            }
+<span class="fc" id="L2405">        } catch (Exception e) {</span>
+
+<span class="fc" id="L2407">            CompletableFuture&lt;TransactionEvent&gt; future = new CompletableFuture&lt;&gt;();</span>
+<span class="fc" id="L2408">            future.completeExceptionally(e);</span>
+<span class="fc" id="L2409">            return future;</span>
+
+        }
+
+    }
+
+    private Envelope createTransactionEnvelope(Payload transactionPayload, User user) throws CryptoException {
+
+<span class="nc" id="L2417">        return Envelope.newBuilder()</span>
+<span class="nc" id="L2418">                .setPayload(transactionPayload.toByteString())</span>
+<span class="nc" id="L2419">                .setSignature(ByteString.copyFrom(client.getCryptoSuite().sign(user.getEnrollment().getKey(), transactionPayload.toByteArray())))</span>
+<span class="nc" id="L2420">                .build();</span>
+
+    }
+
+    byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
+
+<span class="nc" id="L2426">        userContextCheck(signer);</span>
+
+<span class="nc bnc" id="L2428" title="All 2 branches missed.">        if (null == channelConfiguration) {</span>
+
+<span class="nc" id="L2430">            throw new InvalidArgumentException(&quot;channelConfiguration is null&quot;);</span>
+
+        }
+
+        try {
+
+<span class="nc" id="L2436">            Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());</span>
+
+<span class="nc" id="L2438">            final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());</span>
+
+<span class="nc" id="L2440">            TransactionContext transactionContext = getTransactionContext(signer);</span>
+
+<span class="nc" id="L2442">            final ConfigUpdateEnvelope configUpdateEnv = ConfigUpdateEnvelope.parseFrom(ccPayload.getData());</span>
+
+<span class="nc" id="L2444">            final ByteString configUpdate = configUpdateEnv.getConfigUpdate();</span>
+
+<span class="nc" id="L2446">            ByteString sigHeaderByteString = getSignatureHeaderAsByteString(signer, transactionContext);</span>
+
+<span class="nc" id="L2448">            ByteString signatureByteSting = transactionContext.signByteStrings(new User[] {signer},</span>
+                    sigHeaderByteString, configUpdate)[0];
+
+<span class="nc" id="L2451">            return ConfigSignature.newBuilder()</span>
+<span class="nc" id="L2452">                    .setSignatureHeader(sigHeaderByteString)</span>
+<span class="nc" id="L2453">                    .setSignature(signatureByteSting)</span>
+<span class="nc" id="L2454">                    .build().toByteArray();</span>
+
+<span class="nc" id="L2456">        } catch (Exception e) {</span>
+
+<span class="nc" id="L2458">            throw new InvalidArgumentException(e);</span>
+        } finally {
+<span class="nc" id="L2460">            logger.debug(&quot;finally done&quot;);</span>
+        }
+
+    }
+    ////////////////  Channel Block monitoring //////////////////////////////////
+
+    /**
+     * Register a block listener.
+     *
+     * @param listener
+     * @return the UUID handle of the registered block listener.
+     * @throws InvalidArgumentException if the channel is shutdown.
+     */
+    public String registerBlockListener(BlockListener listener) throws InvalidArgumentException {
+
+<span class="pc bpc" id="L2475" title="1 of 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L2476">            throw new InvalidArgumentException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+        }
+
+<span class="fc" id="L2479">        return new BL(listener).getHandle();</span>
+
+    }
+
+    /**
+     * A queue each eventing hub will write events to.
+     */
+
+<span class="fc" id="L2487">    private final ChannelEventQue channelEventQue = new ChannelEventQue();</span>
+
+<span class="fc" id="L2489">    class ChannelEventQue {</span>
+
+<span class="fc" id="L2491">        private final BlockingQueue&lt;BlockEvent&gt; events = new LinkedBlockingQueue&lt;&gt;(); //Thread safe</span>
+        private Throwable eventException;
+
+        void eventError(Throwable t) {
+<span class="nc" id="L2495">            eventException = t;</span>
+<span class="nc" id="L2496">        }</span>
+
+        boolean addBEvent(BlockEvent event) {
+<span class="nc bnc" id="L2499" title="All 2 branches missed.">            if (shutdown) {</span>
+<span class="nc" id="L2500">                return false;</span>
+            }
+
+            //For now just support blocks --- other types are also reported as blocks.
+
+<span class="nc bnc" id="L2505" title="All 2 branches missed.">            if (event.getEvent().getEventCase() != EventCase.BLOCK) {</span>
+<span class="nc" id="L2506">                return false;</span>
+            }
+
+//            Block block = event.seekBlock();
+//            final long num = block.getHeader().getNumber();
+
+            // May be fed by multiple eventhubs but BlockingQueue.add() is thread-safe
+<span class="nc" id="L2513">            events.add(event);</span>
+
+<span class="nc" id="L2515">            return true;</span>
+
+        }
+
+        BlockEvent getNextEvent() throws EventHubException {
+<span class="pc bpc" id="L2520" title="1 of 2 branches missed.">            if (shutdown) {</span>
+<span class="nc" id="L2521">                throw new EventHubException(format(&quot;Channel %s has been shutdown&quot;, name));</span>
+
+            }
+<span class="fc" id="L2524">            BlockEvent ret = null;</span>
+<span class="pc bpc" id="L2525" title="1 of 2 branches missed.">            if (eventException != null) {</span>
+<span class="nc" id="L2526">                throw new EventHubException(eventException);</span>
+            }
+            try {
+<span class="nc" id="L2529">                ret = events.take();</span>
+<span class="nc" id="L2530">            } catch (InterruptedException e) {</span>
+<span class="nc bnc" id="L2531" title="All 2 branches missed.">                if (shutdown) {</span>
+<span class="nc" id="L2532">                    throw new EventHubException(eventException);</span>
+
+                } else {
+<span class="nc" id="L2535">                    logger.warn(e);</span>
+<span class="nc bnc" id="L2536" title="All 2 branches missed.">                    if (eventException != null) {</span>
+
+<span class="nc" id="L2538">                        EventHubException eve = new EventHubException(eventException);</span>
+<span class="nc" id="L2539">                        logger.error(eve.getMessage(), eve);</span>
+<span class="nc" id="L2540">                        throw eve;</span>
+                    }
+                }
+<span class="nc" id="L2543">            }</span>
+
+<span class="nc bnc" id="L2545" title="All 2 branches missed.">            if (eventException != null) {</span>
+<span class="nc" id="L2546">                throw new EventHubException(eventException);</span>
+            }
+
+<span class="nc bnc" id="L2549" title="All 2 branches missed.">            if (shutdown) {</span>
+
+<span class="nc" id="L2551">                throw new EventHubException(format(&quot;Channel %s has been shutdown.&quot;, name));</span>
+
+            }
+
+<span class="nc" id="L2555">            return ret;</span>
+        }
+
+    }
+
+    /**
+     * Runs processing events from event hubs.
+     */
+
+<span class="fc" id="L2564">    Thread eventQueueThread = null;</span>
+
+    private void startEventQue() {
+
+<span class="pc bpc" id="L2568" title="1 of 2 branches missed.">        if (eventQueueThread != null) {</span>
+<span class="nc" id="L2569">            return;</span>
+        }
+
+<span class="fc" id="L2572">        executorService.execute(() -&gt; {</span>
+<span class="fc" id="L2573">            eventQueueThread = Thread.currentThread();</span>
+
+<span class="pc bpc" id="L2575" title="1 of 2 branches missed.">            while (!shutdown) {</span>
+                final BlockEvent blockEvent;
+                try {
+<span class="nc" id="L2578">                    blockEvent = channelEventQue.getNextEvent();</span>
+<span class="nc" id="L2579">                } catch (EventHubException e) {</span>
+<span class="nc bnc" id="L2580" title="All 2 branches missed.">                    if (!shutdown) {</span>
+<span class="nc" id="L2581">                        logger.error(e);</span>
+                    }
+
+<span class="nc" id="L2584">                    continue;</span>
+<span class="nc" id="L2585">                }</span>
+<span class="nc bnc" id="L2586" title="All 2 branches missed.">                if (blockEvent == null) {</span>
+<span class="nc" id="L2587">                    continue;</span>
+                }
+
+                try {
+
+<span class="nc" id="L2592">                    final String blockchainID = blockEvent.getChannelId();</span>
+
+<span class="nc bnc" id="L2594" title="All 2 branches missed.">                    if (!Objects.equals(name, blockchainID)) {</span>
+<span class="nc" id="L2595">                        continue; // not targeted for this channel</span>
+                    }
+
+<span class="nc" id="L2598">                    final ArrayList&lt;BL&gt; blcopy = new ArrayList&lt;&gt;(blockListeners.size() + 3);</span>
+<span class="nc" id="L2599">                    synchronized (blockListeners) {</span>
+<span class="nc" id="L2600">                        blcopy.addAll(blockListeners.values());</span>
+<span class="nc" id="L2601">                    }</span>
+
+<span class="nc bnc" id="L2603" title="All 2 branches missed.">                    for (BL l : blcopy) {</span>
+                        try {
+<span class="nc" id="L2605">                            executorService.execute(() -&gt; l.listener.received(blockEvent));</span>
+<span class="nc" id="L2606">                        } catch (Throwable e) { //Don't let one register stop rest.</span>
+<span class="nc" id="L2607">                            logger.error(&quot;Error trying to call block listener on channel &quot; + blockEvent.getChannelId(), e);</span>
+<span class="nc" id="L2608">                        }</span>
+<span class="nc" id="L2609">                    }</span>
+<span class="nc" id="L2610">                } catch (Exception e) {</span>
+<span class="nc" id="L2611">                    logger.error(&quot;Unable to parse event&quot;, e);</span>
+<span class="nc" id="L2612">                    logger.debug(&quot;event:\n)&quot;);</span>
+<span class="nc" id="L2613">                    logger.debug(blockEvent.toString());</span>
+<span class="nc" id="L2614">                }</span>
+<span class="nc" id="L2615">            }</span>
+<span class="nc" id="L2616">        });</span>
+
+//        Do our own time out. of tasks
+//        cleanUpTask = () -&gt; {
+//
+//
+//            for (;;) {
+//
+//                synchronized (txListeners) {
+//
+//                    for (LinkedList&lt;TL&gt; tll : txListeners.values()) {
+//
+//                        if (tll == null) {
+//                            continue;
+//                        }
+//
+//                        for (TL tl : tll) {
+//                            tl.timedOut();
+//                        }
+//                    }
+//                }
+//
+//
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    logger.error(e);
+//
+//                }
+//
+//            }
+//
+//        };
+//
+//
+//        new Thread(cleanUpTask).start();
+//
+<span class="fc" id="L2653">    }</span>
+
+<span class="fc" id="L2655">    private final LinkedHashMap&lt;String, BL&gt; blockListeners = new LinkedHashMap&lt;&gt;();</span>
+
+    class BL {
+
+        final BlockListener listener;
+
+        public String getHandle() {
+<span class="fc" id="L2662">            return handle;</span>
+        }
+
+        final String handle;
+
+<span class="fc" id="L2667">        BL(BlockListener listener) {</span>
+
+<span class="fc" id="L2669">            handle = Utils.generateUUID();</span>
+<span class="fc" id="L2670">            logger.debug(format(&quot;Channel %s blockListener %s starting&quot;, name, handle));</span>
+
+<span class="fc" id="L2672">            this.listener = listener;</span>
+<span class="fc" id="L2673">            synchronized (blockListeners) {</span>
+
+<span class="fc" id="L2675">                blockListeners.put(handle, this);</span>
+
+<span class="pc" id="L2677">            }</span>
+
+<span class="fc" id="L2679">        }</span>
+    }
+
+    //////////  Transaction monitoring  /////////////////////////////
+
+    /**
+     * Own block listener to manage transactions.
+     *
+     * @return
+     */
+
+    private String registerTransactionListenerProcessor() throws InvalidArgumentException {
+<span class="fc" id="L2691">        logger.debug(format(&quot;Channel %s registerTransactionListenerProcessor starting&quot;, name));</span>
+
+        // Transaction listener is internal Block listener for transactions
+
+<span class="fc" id="L2695">        return registerBlockListener(blockEvent -&gt; {</span>
+
+<span class="nc bnc" id="L2697" title="All 2 branches missed.">            if (txListeners.isEmpty()) {</span>
+<span class="nc" id="L2698">                return;</span>
+            }
+
+<span class="nc bnc" id="L2701" title="All 2 branches missed.">            for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {</span>
+
+<span class="nc" id="L2703">                logger.debug(format(&quot;Channel %s got event for transaction %s &quot;, name, transactionEvent.getTransactionID()));</span>
+
+<span class="nc" id="L2705">                List&lt;TL&gt; txL = new ArrayList&lt;&gt;(txListeners.size() + 2);</span>
+<span class="nc" id="L2706">                synchronized (txListeners) {</span>
+<span class="nc" id="L2707">                    LinkedList&lt;TL&gt; list = txListeners.get(transactionEvent.getTransactionID());</span>
+<span class="nc bnc" id="L2708" title="All 2 branches missed.">                    if (null != list) {</span>
+<span class="nc" id="L2709">                        txL.addAll(list);</span>
+                    }
+<span class="nc" id="L2711">                }</span>
+
+<span class="nc bnc" id="L2713" title="All 2 branches missed.">                for (TL l : txL) {</span>
+                    try {
+                        // only if we get events from each eventhub on the channel fire the transactions event.
+                        //   if (getEventHubs().containsAll(l.eventReceived(transactionEvent.getEventHub()))) {
+<span class="nc bnc" id="L2717" title="All 2 branches missed.">                        if (getEventHubs().size() == l.eventReceived(transactionEvent.getEventHub()).size()) {</span>
+<span class="nc" id="L2718">                            l.fire(transactionEvent);</span>
+                        }
+
+<span class="nc" id="L2721">                    } catch (Throwable e) {</span>
+<span class="nc" id="L2722">                        logger.error(e); // Don't let one register stop rest.</span>
+<span class="nc" id="L2723">                    }</span>
+<span class="nc" id="L2724">                }</span>
+<span class="nc" id="L2725">            }</span>
+<span class="nc" id="L2726">        });</span>
+    }
+
+<span class="fc" id="L2729">    private final LinkedHashMap&lt;String, LinkedList&lt;TL&gt;&gt; txListeners = new LinkedHashMap&lt;&gt;();</span>
+
+    private class TL {
+        final String txID;
+<span class="nc" id="L2733">        final AtomicBoolean fired = new AtomicBoolean(false);</span>
+        final CompletableFuture&lt;TransactionEvent&gt; future;
+<span class="nc" id="L2735">        final Set&lt;EventHub&gt; seenEventHubs = Collections.synchronizedSet(new HashSet&lt;&gt;());</span>
+//        final long createdTime = System.currentTimeMillis();//seconds
+//        final long waitTime;
+
+        Set&lt;EventHub&gt; eventReceived(EventHub eventHub) {
+
+<span class="nc" id="L2741">            logger.debug(format(&quot;Channel %s seen transaction event %s for eventHub %s&quot;, name, txID, eventHub.toString()));</span>
+<span class="nc" id="L2742">            seenEventHubs.add(eventHub);</span>
+<span class="nc" id="L2743">            return seenEventHubs;</span>
+        }
+
+<span class="nc" id="L2746">        TL(String txID, CompletableFuture&lt;BlockEvent.TransactionEvent&gt; future) {</span>
+<span class="nc" id="L2747">            this.txID = txID;</span>
+<span class="nc" id="L2748">            this.future = future;</span>
+//            if (waitTimeSeconds &gt; 0) {
+//                this.waitTime = waitTimeSeconds * 1000;
+//            } else {
+//                this.waitTime = -1;
+//            }
+<span class="nc" id="L2754">            addListener();</span>
+<span class="nc" id="L2755">        }</span>
+
+        private void addListener() {
+<span class="nc" id="L2758">            synchronized (txListeners) {</span>
+<span class="nc" id="L2759">                LinkedList&lt;TL&gt; tl = txListeners.computeIfAbsent(txID, k -&gt; new LinkedList&lt;&gt;());</span>
+<span class="nc" id="L2760">                tl.add(this);</span>
+<span class="nc" id="L2761">            }</span>
+<span class="nc" id="L2762">        }</span>
+
+        void fire(BlockEvent.TransactionEvent transactionEvent) {
+
+<span class="nc bnc" id="L2766" title="All 2 branches missed.">            if (fired.getAndSet(true)) {</span>
+<span class="nc" id="L2767">                return;</span>
+            }
+
+<span class="nc" id="L2770">            synchronized (txListeners) {</span>
+<span class="nc" id="L2771">                LinkedList&lt;TL&gt; l = txListeners.get(txID);</span>
+
+<span class="nc bnc" id="L2773" title="All 2 branches missed.">                if (null != l) {</span>
+<span class="nc" id="L2774">                    l.removeFirstOccurrence(this);</span>
+<span class="nc bnc" id="L2775" title="All 2 branches missed.">                    if (l.size() == 0) {</span>
+<span class="nc" id="L2776">                        txListeners.remove(txID);</span>
+                    }
+                }
+<span class="nc" id="L2779">            }</span>
+<span class="nc bnc" id="L2780" title="All 2 branches missed.">            if (future.isDone()) {</span>
+<span class="nc" id="L2781">                fired.set(true);</span>
+<span class="nc" id="L2782">                return;</span>
+            }
+
+<span class="nc bnc" id="L2785" title="All 2 branches missed.">            if (transactionEvent.isValid()) {</span>
+<span class="nc" id="L2786">                executorService.execute(() -&gt; future.complete(transactionEvent));</span>
+            } else {
+<span class="nc" id="L2788">                executorService.execute(() -&gt; future.completeExceptionally(</span>
+<span class="nc" id="L2789">                        new TransactionEventException(format(&quot;Received invalid transaction event. Transaction ID %s status %s&quot;,</span>
+<span class="nc" id="L2790">                                transactionEvent.getTransactionID(),</span>
+<span class="nc" id="L2791">                                transactionEvent.getValidationCode()),</span>
+                                transactionEvent)));
+            }
+<span class="nc" id="L2794">        }</span>
+
+        //KEEP THIS FOR NOW in case in the future we decide we want it.
+
+//        public boolean timedOut() {
+//
+//            if (fired.get()) {
+//                return false;
+//            }
+//            if (waitTime == -1) {
+//                return false;
+//            }
+//
+//            if (createdTime + waitTime &gt; System.currentTimeMillis()) {
+//                return false;
+//            }
+//
+//            LinkedList&lt;TL&gt; l = txListeners.get(txID);
+//            if (null != l) {
+//                l.removeFirstOccurrence(this);
+//            }
+//
+//            logger.debug(&quot;timeout:&quot; + txID);
+//
+//            if (fired.getAndSet(true)) {
+//                return false;
+//            }
+//
+//            executorService.execute(() -&gt; {
+//                future.completeExceptionally(new TimeoutException(&quot;Transaction &quot; + txID + &quot; timed out.&quot;));
+//            });
+//
+//            return true;
+//
+//        }
+    }
+
+    /**
+     * Register a transactionId that to get notification on when the event is seen in the block chain.
+     *
+     * @param txid
+     * @return
+     */
+
+    private CompletableFuture&lt;TransactionEvent&gt; registerTxListener(String txid) {
+
+<span class="nc" id="L2840">        CompletableFuture&lt;TransactionEvent&gt; future = new CompletableFuture&lt;&gt;();</span>
+
+<span class="nc" id="L2842">        new TL(txid, future);</span>
+
+<span class="nc" id="L2844">        return future;</span>
+
+    }
+
+    /**
+     * Shutdown the channel with all resources released.
+     *
+     * @param force force immediate shutdown.
+     */
+
+    public synchronized void shutdown(boolean force) {
+
+<span class="pc bpc" id="L2856" title="1 of 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L2857">            return;</span>
+        }
+
+<span class="fc" id="L2860">        initialized = false;</span>
+<span class="fc" id="L2861">        shutdown = true;</span>
+//        anchorPeers = null;
+<span class="fc" id="L2863">        executorService = null;</span>
+
+<span class="pc bpc" id="L2865" title="1 of 2 branches missed.">        for (EventHub eh : getEventHubs()) {</span>
+
+            try {
+<span class="nc" id="L2868">                eh.shutdown();</span>
+<span class="nc" id="L2869">            } catch (Exception e) {</span>
+                // Best effort.
+<span class="nc" id="L2871">            }</span>
+
+<span class="nc" id="L2873">        }</span>
+<span class="fc" id="L2874">        eventHubs.clear();</span>
+<span class="fc bfc" id="L2875" title="All 2 branches covered.">        for (Peer peer : getPeers()) {</span>
+
+            try {
+<span class="fc" id="L2878">                peer.shutdown(force);</span>
+<span class="nc" id="L2879">            } catch (Exception e) {</span>
+                // Best effort.
+<span class="fc" id="L2881">            }</span>
+<span class="fc" id="L2882">        }</span>
+<span class="fc" id="L2883">        peers.clear();</span>
+
+<span class="fc bfc" id="L2885" title="All 2 branches covered.">        for (Orderer orderer : getOrderers()) {</span>
+<span class="fc" id="L2886">            orderer.shutdown(force);</span>
+<span class="fc" id="L2887">        }</span>
+
+<span class="fc" id="L2889">        orderers.clear();</span>
+
+<span class="pc bpc" id="L2891" title="1 of 2 branches missed.">        if (eventQueueThread != null) {</span>
+<span class="nc" id="L2892">            eventQueueThread.interrupt();</span>
+        }
+<span class="fc" id="L2894">        eventQueueThread = null;</span>
+<span class="fc" id="L2895">    }</span>
+
+    @Override
+    protected void finalize() throws Throwable {
+<span class="fc" id="L2899">        shutdown(true);</span>
+<span class="fc" id="L2900">        super.finalize();</span>
+
+<span class="fc" id="L2902">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

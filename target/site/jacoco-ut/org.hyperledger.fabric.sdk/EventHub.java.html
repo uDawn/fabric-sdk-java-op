@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventHub.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">EventHub.java</span></div><h1>EventHub.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016 IBM, DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import io.netty.util.internal.StringUtil;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.peer.EventsGrpc;
+import org.hyperledger.fabric.protos.peer.PeerEvents;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.EventHubException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+
+/**
+ * Class to manage fabric events.
+ * &lt;p&gt;
+ * Feeds Channel event queues with events
+ */
+
+public class EventHub {
+<span class="fc" id="L47">    private static final Log logger = LogFactory.getLog(EventHub.class);</span>
+    private final ExecutorService executorService;
+
+    private final String url;
+    private final String name;
+    private final Properties properties;
+    private ManagedChannel managedChannel;
+<span class="fc" id="L54">    private boolean connected = false;</span>
+    private EventsGrpc.EventsStub events;
+    private StreamObserver&lt;PeerEvents.SignedEvent&gt; sender;
+    /**
+     * Event queue for all events from eventhubs in the channel
+     */
+    private Channel.ChannelEventQue eventQue;
+<span class="fc" id="L61">    private long connectedTime = 0L; // 0 := never connected</span>
+<span class="fc" id="L62">    private boolean shutdown = false;</span>
+    private Channel channel;
+    private TransactionContext transactionContext;
+
+    /**
+     * Get disconnected time.
+     *
+     * @return Time in milli seconds disconnect occurred. Zero if never disconnected
+     */
+    public long getDisconnectedTime() {
+<span class="nc" id="L72">        return disconnectedTime;</span>
+    }
+
+    private long disconnectedTime;
+
+    /**
+     * Is event hub connected.
+     *
+     * @return boolean if true event hub is connected.
+     */
+    public boolean isConnected() {
+<span class="nc" id="L83">        return connected;</span>
+    }
+
+    /**
+     * Get last connect time.
+     *
+     * @return Time in milli seconds the event hub last connected. Zero if never connected.
+     */
+    public long getConnectedTime() {
+<span class="nc" id="L92">        return connectedTime;</span>
+    }
+
+    /**
+     * Get last attempt time to connect the event hub.
+     *
+     * @return Last attempt time to connect the event hub in milli seconds. Zero when never attempted.
+     */
+
+    public long getLastConnectedAttempt() {
+<span class="nc" id="L102">        return lastConnectedAttempt;</span>
+    }
+
+    private long lastConnectedAttempt;
+
+<span class="fc" id="L107">    EventHub(String name, String grpcURL, ExecutorService executorService, Properties properties) throws InvalidArgumentException {</span>
+
+<span class="fc" id="L109">        Exception e = checkGrpcUrl(grpcURL);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        if (e != null) {</span>
+<span class="nc" id="L111">            throw new InvalidArgumentException(&quot;Bad event hub url.&quot;, e);</span>
+
+        }
+
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (StringUtil.isNullOrEmpty(name)) {</span>
+<span class="nc" id="L116">            throw new InvalidArgumentException(&quot;Invalid name for eventHub&quot;);</span>
+        }
+
+<span class="fc" id="L119">        this.url = grpcURL;</span>
+<span class="fc" id="L120">        this.name = name;</span>
+<span class="fc" id="L121">        this.executorService = executorService;</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.</span>
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * Create a new instance.
+     *
+     * @param name
+     * @param url
+     * @param properties
+     * @return
+     */
+
+    static EventHub createNewInstance(String name, String url, ExecutorService executorService, Properties properties) throws InvalidArgumentException {
+<span class="fc" id="L135">        return new EventHub(name, url, executorService, properties);</span>
+    }
+
+    /**
+     * Event hub name
+     *
+     * @return event hub name
+     */
+
+    public String getName() {
+<span class="nc" id="L145">        return name;</span>
+    }
+
+    /**
+     * Event hub properties
+     *
+     * @return Event hub properties
+     * @see HFClient#newEventHub(String, String, Properties)
+     */
+    public Properties getProperties() {
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        return properties == null ? null : (Properties) properties.clone();</span>
+    }
+
+    boolean connect() throws EventHubException {
+
+<span class="nc bnc" id="L160" title="All 2 branches missed.">        if (transactionContext == null) {</span>
+<span class="nc" id="L161">            throw new EventHubException(&quot;Eventhup reconnect failed with no user context&quot;);</span>
+        }
+
+<span class="nc" id="L164">        return connect(transactionContext);</span>
+
+    }
+
+    synchronized boolean connect(final TransactionContext transactionContext) throws EventHubException {
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (connected) {</span>
+<span class="nc" id="L170">            logger.warn(format(&quot;%s already connected.&quot;, toString()));</span>
+<span class="nc" id="L171">            return true;</span>
+        }
+
+<span class="nc" id="L174">        lastConnectedAttempt = System.currentTimeMillis();</span>
+
+<span class="nc" id="L176">        managedChannel = new Endpoint(url, properties).getChannelBuilder().build();</span>
+
+<span class="nc" id="L178">        events = EventsGrpc.newStub(managedChannel);</span>
+
+<span class="nc" id="L180">        final ArrayList&lt;Throwable&gt; threw = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L182">        StreamObserver&lt;PeerEvents.Event&gt; eventStream = new StreamObserver&lt;PeerEvents.Event&gt;() {</span>
+            @Override
+            public void onNext(PeerEvents.Event event) {
+
+<span class="nc" id="L186">                logger.debug(format(&quot;EventHub %s got  event type: %s&quot;, EventHub.this.name, event.getEventCase().name()));</span>
+
+<span class="nc bnc" id="L188" title="All 2 branches missed.">                if (event.getEventCase() == PeerEvents.Event.EventCase.BLOCK) {</span>
+                    try {
+<span class="nc" id="L190">                        eventQue.addBEvent(new BlockEvent(EventHub.this, event));  //add to channel queue</span>
+<span class="nc" id="L191">                    } catch (InvalidProtocolBufferException e) {</span>
+<span class="nc" id="L192">                        EventHubException eventHubException = new EventHubException(format(&quot;%s onNext error %s&quot;, this, e.getMessage()), e);</span>
+<span class="nc" id="L193">                        logger.error(eventHubException.getMessage());</span>
+<span class="nc" id="L194">                        threw.add(eventHubException);</span>
+<span class="nc" id="L195">                    }</span>
+                }
+<span class="nc" id="L197">            }</span>
+
+            @Override
+            public void onError(Throwable t) {
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                if (shutdown) { //IF we're shutdown don't try anything more.</span>
+<span class="nc" id="L202">                    return;</span>
+                }
+
+<span class="nc" id="L205">                final boolean isTerminated = managedChannel.isTerminated();</span>
+<span class="nc" id="L206">                final boolean isChannelShutdown = managedChannel.isShutdown();</span>
+
+<span class="nc" id="L208">                logger.error(format(&quot;%s terminated is %b shutdown is %b has error %s &quot;, EventHub.this.toString(), isTerminated, isChannelShutdown,</span>
+<span class="nc" id="L209">                        t.getMessage()), new EventHubException(t));</span>
+
+                //              logger.error(&quot;Error in stream: &quot; + t.getMessage(), new EventHubException(t));
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                if (t instanceof StatusRuntimeException) {</span>
+<span class="nc" id="L213">                    StatusRuntimeException sre = (StatusRuntimeException) t;</span>
+<span class="nc" id="L214">                    Status sreStatus = sre.getStatus();</span>
+<span class="nc" id="L215">                    logger.error(format(&quot;StatusRuntimeException Status %s.  Description %s &quot;, sreStatus + &quot;&quot;, sreStatus.getDescription()));</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">                    if (sre.getStatus().getCode() == Status.Code.INTERNAL) {</span>
+
+<span class="nc" id="L218">                        connected = false;</span>
+<span class="nc" id="L219">                        disconnectedTime = System.currentTimeMillis();</span>
+                        try {
+<span class="nc bnc" id="L221" title="All 2 branches missed.">                            if (!isChannelShutdown) {</span>
+<span class="nc" id="L222">                                managedChannel.shutdownNow();</span>
+                            }
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                            if (null != disconnectedHandler) {</span>
+                                try {
+<span class="nc" id="L226">                                    disconnectedHandler.disconnected(EventHub.this);</span>
+<span class="nc" id="L227">                                } catch (Exception e) {</span>
+<span class="nc" id="L228">                                    eventQue.eventError(e);</span>
+<span class="nc" id="L229">                                }</span>
+                            }
+<span class="nc" id="L231">                        } catch (Exception e) {</span>
+<span class="nc" id="L232">                            logger.warn(&quot;Failed shutdown&quot;);</span>
+<span class="nc" id="L233">                        }</span>
+                    }
+                }
+<span class="nc" id="L236">                threw.add(t);</span>
+
+<span class="nc" id="L238">            }</span>
+
+            @Override
+            public void onCompleted() {
+
+<span class="nc" id="L243">                logger.warn(format(&quot;Stream completed %s&quot;, EventHub.this.toString()));</span>
+
+<span class="nc" id="L245">            }</span>
+        };
+
+<span class="nc" id="L248">        sender = events.chat(eventStream);</span>
+        try {
+<span class="nc" id="L250">            blockListen(transactionContext);</span>
+<span class="nc" id="L251">        } catch (CryptoException e) {</span>
+<span class="nc" id="L252">            throw new EventHubException(e);</span>
+<span class="nc" id="L253">        }</span>
+
+<span class="nc" id="L255">        logger.info(format(&quot;done with connect for %s&quot;, EventHub.this.toString()));</span>
+
+// Not implemented!
+//        managedChannel.notifyWhenStateChanged(ConnectivityState.CONNECTING, () -&gt; {
+//            logger.info(format(&quot;CONNECTING %s&quot;, EventHub.this.toString()));
+//        });
+//
+//        managedChannel.notifyWhenStateChanged(ConnectivityState.READY, () -&gt; {
+//            logger.info(format(&quot;READY %s&quot;, EventHub.this.toString()));
+//        });
+
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        if (!threw.isEmpty()) {</span>
+<span class="nc" id="L267">            Throwable t = threw.iterator().next();</span>
+
+<span class="nc" id="L269">            EventHubException evh = new EventHubException(t.getMessage(), t);</span>
+<span class="nc" id="L270">            logger.error(format(&quot;EventHub %s Error in stream. error: &quot; + t.getMessage(), toString()), evh);</span>
+<span class="nc" id="L271">            throw evh;</span>
+
+        }
+
+<span class="nc" id="L275">        connected = true;</span>
+<span class="nc" id="L276">        connectedTime = System.currentTimeMillis();</span>
+<span class="nc" id="L277">        return true;</span>
+
+    }
+
+    private void blockListen(TransactionContext transactionContext) throws CryptoException {
+
+<span class="nc" id="L283">        this.transactionContext = transactionContext;</span>
+
+<span class="nc" id="L285">        PeerEvents.Register register = PeerEvents.Register.newBuilder()</span>
+<span class="nc" id="L286">                .addEvents(PeerEvents.Interest.newBuilder().setEventType(PeerEvents.EventType.BLOCK).build()).build();</span>
+<span class="nc" id="L287">        ByteString blockEventByteString = PeerEvents.Event.newBuilder().setRegister(register)</span>
+<span class="nc" id="L288">                .setCreator(transactionContext.getIdentity().toByteString())</span>
+<span class="nc" id="L289">                .build().toByteString();</span>
+<span class="nc" id="L290">        PeerEvents.SignedEvent signedBlockEvent = PeerEvents.SignedEvent.newBuilder()</span>
+<span class="nc" id="L291">                .setEventBytes(blockEventByteString)</span>
+<span class="nc" id="L292">                .setSignature(transactionContext.signByteString(blockEventByteString.toByteArray()))</span>
+<span class="nc" id="L293">                .build();</span>
+<span class="nc" id="L294">        sender.onNext(signedBlockEvent);</span>
+<span class="nc" id="L295">    }</span>
+
+    /**
+     * Get the GRPC URL used to connect.
+     *
+     * @return GRPC URL.
+     */
+    public String getUrl() {
+<span class="nc" id="L303">        return url;</span>
+    }
+
+    /**
+     * Set the channel queue that will receive events
+     *
+     * @param eventQue
+     */
+    void setEventQue(Channel.ChannelEventQue eventQue) {
+<span class="nc" id="L312">        this.eventQue = eventQue;</span>
+<span class="nc" id="L313">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L317">        return &quot;EventHub:&quot; + getName();</span>
+    }
+
+    public void shutdown() {
+<span class="nc" id="L321">        shutdown = true;</span>
+<span class="nc" id="L322">        connected = false;</span>
+<span class="nc" id="L323">        disconnectedHandler = null;</span>
+<span class="nc" id="L324">        channel = null;</span>
+<span class="nc" id="L325">        managedChannel.shutdownNow();</span>
+<span class="nc" id="L326">    }</span>
+
+    void setChannel(Channel channel) throws InvalidArgumentException {
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        if (channel == null) {</span>
+<span class="nc" id="L330">            throw new InvalidArgumentException(&quot;setChannel Channel can not be null&quot;);</span>
+        }
+
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        if (null != this.channel) {</span>
+<span class="nc" id="L334">            throw new InvalidArgumentException(format(&quot;Can not add event hub  %s to channel %s because it already belongs to channel %s.&quot;,</span>
+<span class="nc" id="L335">                    name, channel.getName(), this.channel.getName()));</span>
+        }
+
+<span class="nc" id="L338">        this.channel = channel;</span>
+<span class="nc" id="L339">    }</span>
+
+    /**
+     * Eventhub disconnection notification interface
+     */
+    public interface EventHubDisconnected {
+
+        /**
+         * Called when a disconnect is detected.
+         *
+         * @param eventHub
+         * @throws EventHubException
+         */
+        void disconnected(EventHub eventHub) throws EventHubException;
+
+    }
+
+    /**
+     * Default reconnect event hub implementation.  Applications are free to replace
+     */
+
+<span class="fc" id="L360">    protected EventHubDisconnected disconnectedHandler = new EventHub.EventHubDisconnected() {</span>
+        @Override
+        public synchronized void disconnected(final EventHub eventHub) throws EventHubException {
+<span class="nc" id="L363">            logger.info(format(&quot;Detected disconnect %s&quot;, eventHub.toString()));</span>
+
+<span class="nc bnc" id="L365" title="All 2 branches missed.">            if (eventHub.connectedTime == 0) { //means event hub never connected</span>
+<span class="nc" id="L366">                logger.error(format(&quot;%s failed on first connect no retries&quot;, eventHub.toString()));</span>
+
+<span class="nc" id="L368">                eventHub.setEventHubDisconnectedHandler(null); //don't try again</span>
+
+                //event hub never connected.
+<span class="nc" id="L371">                throw new EventHubException(format(&quot;%s never connected.&quot;, eventHub.toString()));</span>
+            }
+
+<span class="nc" id="L374">            executorService.execute(() -&gt; {</span>
+
+                try {
+<span class="nc" id="L377">                    Thread.sleep(3000);</span>
+
+<span class="nc bnc" id="L379" title="All 2 branches missed.">                    if (eventHub.connect()) {</span>
+<span class="nc" id="L380">                        logger.info(format(&quot;Successful reconnect %s&quot;, eventHub.toString()));</span>
+                    } else {
+<span class="nc" id="L382">                        logger.info(format(&quot;Failed reconnect %s&quot;, eventHub.toString()));</span>
+                    }
+
+<span class="nc" id="L385">                } catch (Exception e) {</span>
+
+<span class="nc" id="L387">                    logger.debug(format(&quot;Failed %s to reconnect.&quot;, toString()));</span>
+
+<span class="nc" id="L389">                }</span>
+
+<span class="nc" id="L391">            });</span>
+
+<span class="nc" id="L393">        }</span>
+    };
+
+    /**
+     * Set class to handle Event hub disconnects
+     *
+     * @param newEventHubDisconnectedHandler New handler to replace.  If set to null no retry will take place.
+     * @return the old handler.
+     */
+
+    public EventHubDisconnected setEventHubDisconnectedHandler(EventHubDisconnected newEventHubDisconnectedHandler) {
+<span class="nc" id="L404">        EventHubDisconnected ret = disconnectedHandler;</span>
+<span class="nc" id="L405">        disconnectedHandler = newEventHubDisconnectedHandler;</span>
+<span class="nc" id="L406">        return ret;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

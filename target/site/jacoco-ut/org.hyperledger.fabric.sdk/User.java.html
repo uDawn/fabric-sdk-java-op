@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>User.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">User.java</span></div><h1>User.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.Set;
+
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Utils;
+
+import static java.lang.String.format;
+
+/**
+ * User - Is the interface needed to be implemented by embedding application of the SDK
+ */
+public interface User {
+
+    /**
+     * Get the name that identifies the user.
+     *
+     * @return the user name.
+     */
+
+    String getName();
+
+    /**
+     * Get the roles to which the user belongs.
+     *
+     * @return role names.
+     */
+    Set&lt;String&gt; getRoles();
+
+    /**
+     * Get the user's account
+     *
+     * @return the account name
+     */
+    String getAccount();
+
+    /**
+     * Get the user's affiliation.
+     *
+     * @return the affiliation.
+     */
+    String getAffiliation();
+
+    /**
+     * Get the user's enrollment certificate information.
+     *
+     * @return the enrollment information.
+     */
+    Enrollment getEnrollment();
+
+    /**
+     * Get the Membership Service Provider Identifier provided by the user's organization.
+     *
+     * @return MSP Id.
+     */
+    String getMspId();
+
+    static void userContextCheck(User userContext) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (userContext == null) {</span>
+<span class="fc" id="L75">            throw new InvalidArgumentException(&quot;UserContext is null&quot;);</span>
+        }
+<span class="fc" id="L77">        final String userName = userContext.getName();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(userName)) {</span>
+<span class="fc" id="L79">            throw new InvalidArgumentException(&quot;UserContext user's name missing.&quot;);</span>
+        }
+
+<span class="fc" id="L82">        Enrollment enrollment = userContext.getEnrollment();</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (enrollment == null) {</span>
+<span class="fc" id="L84">            throw new InvalidArgumentException(format(&quot;UserContext for user %s has no enrollment set.&quot;, userName));</span>
+        }
+
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(userContext.getMspId())) {</span>
+<span class="fc" id="L88">            throw new InvalidArgumentException(format(&quot;UserContext for user %s  has user's MSPID missing.&quot;, userName));</span>
+        }
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(enrollment.getCert())) {</span>
+<span class="fc" id="L92">            throw new InvalidArgumentException(format(&quot;UserContext for user %s enrollment missing user certificate.&quot;, userName));</span>
+        }
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (null == enrollment.getKey()) {</span>
+<span class="fc" id="L95">            throw new InvalidArgumentException(format(&quot;UserContext for user %s has Enrollment missing signing key&quot;, userName));</span>
+        }
+
+<span class="fc" id="L98">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

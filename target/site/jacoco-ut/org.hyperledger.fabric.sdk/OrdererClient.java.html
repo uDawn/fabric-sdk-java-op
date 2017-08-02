@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrdererClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">OrdererClient.java</span></div><h1>OrdererClient.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
+import org.hyperledger.fabric.protos.orderer.AtomicBroadcastGrpc;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.STATUS;
+
+/**
+ * Sample client code that makes gRPC calls to the server.
+ */
+class OrdererClient {
+    private static final long ORDERER_WAIT_TIME = 3000L;
+    private final String channelName;
+    private final ManagedChannelBuilder channelBuilder;
+<span class="fc" id="L44">    private boolean shutdown = false;</span>
+<span class="fc" id="L45">    private static final Log logger = LogFactory.getLog(OrdererClient.class);</span>
+<span class="fc" id="L46">    private ManagedChannel managedChannel = null;</span>
+    private final String name;
+    private final String url;
+    private final long ordererWaitTimeMilliSecs;
+
+    /**
+     * Construct client for accessing Orderer server using the existing managedChannel.
+     */
+<span class="fc" id="L54">    OrdererClient(Orderer orderer, ManagedChannelBuilder&lt;?&gt; channelBuilder, Properties properties) {</span>
+
+<span class="fc" id="L56">        this.channelBuilder = channelBuilder;</span>
+<span class="fc" id="L57">        name = orderer.getName();</span>
+<span class="fc" id="L58">        url = orderer.getUrl();</span>
+<span class="nc" id="L59">        channelName = orderer.getChannel().getName();</span>
+
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (null == properties) {</span>
+
+<span class="nc" id="L63">            ordererWaitTimeMilliSecs = ORDERER_WAIT_TIME;</span>
+
+        } else {
+
+<span class="nc" id="L67">            String ordererWaitTimeMilliSecsString = properties.getProperty(&quot;ordererWaitTimeMilliSecs&quot;, Long.toString(ORDERER_WAIT_TIME));</span>
+
+<span class="nc" id="L69">            long tempOrdererWaitTimeMilliSecs = ORDERER_WAIT_TIME;</span>
+
+            try {
+<span class="nc" id="L72">                tempOrdererWaitTimeMilliSecs = Long.parseLong(ordererWaitTimeMilliSecsString);</span>
+<span class="nc" id="L73">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L74">                logger.warn(format(&quot;Orderer %s wait time %s not parsable.&quot;, name, ordererWaitTimeMilliSecsString), e);</span>
+<span class="nc" id="L75">            }</span>
+
+<span class="nc" id="L77">            ordererWaitTimeMilliSecs = tempOrdererWaitTimeMilliSecs;</span>
+        }
+
+<span class="nc" id="L80">    }</span>
+
+    synchronized void shutdown(boolean force) {
+
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L85">            return;</span>
+        }
+<span class="fc" id="L87">        shutdown = true;</span>
+<span class="fc" id="L88">        ManagedChannel lchannel = managedChannel;</span>
+<span class="fc" id="L89">        managedChannel = null;</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">        if (lchannel == null) {</span>
+<span class="fc" id="L91">            return;</span>
+        }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (force) {</span>
+<span class="nc" id="L94">            lchannel.shutdownNow();</span>
+        } else {
+<span class="nc" id="L96">            boolean isTerminated = false;</span>
+
+            try {
+<span class="nc" id="L99">                isTerminated = lchannel.shutdown().awaitTermination(3, TimeUnit.SECONDS);</span>
+<span class="nc" id="L100">            } catch (Exception e) {</span>
+<span class="nc" id="L101">                logger.debug(e); //best effort</span>
+<span class="nc" id="L102">            }</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (!isTerminated) {</span>
+<span class="nc" id="L104">                lchannel.shutdownNow();</span>
+            }
+        }
+<span class="nc" id="L107">    }</span>
+
+    @Override
+    public void finalize() {
+<span class="fc" id="L111">        shutdown(true);</span>
+<span class="fc" id="L112">    }</span>
+
+    Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) throws Exception {
+<span class="nc" id="L115">        StreamObserver&lt;Common.Envelope&gt; nso = null;</span>
+
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L118">            throw new TransactionException(&quot;Orderer client is shutdown&quot;);</span>
+        }
+
+<span class="nc" id="L121">        ManagedChannel lmanagedChannel = managedChannel;</span>
+
+<span class="nc bnc" id="L123" title="All 6 branches missed.">        if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {</span>
+
+<span class="nc" id="L125">            lmanagedChannel = channelBuilder.build();</span>
+<span class="nc" id="L126">            managedChannel = lmanagedChannel;</span>
+
+        }
+
+        try {
+<span class="nc" id="L131">            final CountDownLatch finishLatch = new CountDownLatch(1);</span>
+<span class="nc" id="L132">            AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(lmanagedChannel);</span>
+
+<span class="nc" id="L134">            final Ab.BroadcastResponse[] ret = new Ab.BroadcastResponse[1];</span>
+<span class="nc" id="L135">            final Throwable[] throwable = new Throwable[] {null};</span>
+
+<span class="nc" id="L137">            StreamObserver&lt;Ab.BroadcastResponse&gt; so = new StreamObserver&lt;Ab.BroadcastResponse&gt;() {</span>
+                @Override
+                public void onNext(Ab.BroadcastResponse resp) {
+                    // logger.info(&quot;Got Broadcast response: &quot; + resp);
+<span class="nc" id="L141">                    logger.debug(&quot;resp status value: &quot; + resp.getStatusValue() + &quot;, resp: &quot; + resp.getStatus());</span>
+<span class="nc" id="L142">                    ret[0] = resp;</span>
+<span class="nc" id="L143">                    finishLatch.countDown();</span>
+
+<span class="nc" id="L145">                }</span>
+
+                @Override
+                public void onError(Throwable t) {
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                    if (!shutdown) {</span>
+<span class="nc" id="L150">                        logger.error(format(&quot;Received error on channel %s, orderer %s, url %s, %s&quot;,</span>
+<span class="nc" id="L151">                                channelName, name, url, t.getMessage()), t);</span>
+                    }
+<span class="nc" id="L153">                    throwable[0] = t;</span>
+<span class="nc" id="L154">                    finishLatch.countDown();</span>
+<span class="nc" id="L155">                }</span>
+
+                @Override
+                public void onCompleted() {
+<span class="nc" id="L159">                    finishLatch.countDown();</span>
+<span class="nc" id="L160">                }</span>
+            };
+
+<span class="nc" id="L163">            nso = broadcast.broadcast(so);</span>
+
+<span class="nc" id="L165">            nso.onNext(envelope);</span>
+
+            try {
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {</span>
+<span class="nc" id="L169">                    TransactionException ste = new TransactionException(format(&quot;Channel %s, send transactions failed on orderer %s. Reason:  timeout after %d ms.&quot;,</span>
+<span class="nc" id="L170">                            channelName, name, ordererWaitTimeMilliSecs));</span>
+<span class="nc" id="L171">                    logger.error(&quot;sendTransaction error &quot; + ste.getMessage(), ste);</span>
+<span class="nc" id="L172">                    throw ste;</span>
+                }
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                if (throwable[0] != null) {</span>
+                    //get full stack trace
+<span class="nc" id="L176">                    TransactionException ste = new TransactionException(format(&quot;Channel %s, send transaction failed on orderer %s. Reason: %s&quot;,</span>
+<span class="nc" id="L177">                            channelName, name, throwable[0].getMessage()), throwable[0]);</span>
+<span class="nc" id="L178">                    logger.error(&quot;sendTransaction error &quot; + ste.getMessage(), ste);</span>
+<span class="nc" id="L179">                    throw ste;</span>
+                }
+<span class="nc" id="L181">                logger.debug(&quot;Done waiting for reply! Got:&quot; + ret[0]);</span>
+
+<span class="nc" id="L183">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L184">                logger.error(e);</span>
+
+<span class="nc" id="L186">            }</span>
+
+<span class="nc" id="L188">            return ret[0];</span>
+<span class="nc" id="L189">        } catch (Throwable t) {</span>
+<span class="nc" id="L190">            managedChannel = null;</span>
+<span class="nc" id="L191">            throw t;</span>
+
+        } finally {
+
+<span class="nc bnc" id="L195" title="All 4 branches missed.">            if (null != nso) {</span>
+
+                try {
+<span class="nc" id="L198">                    nso.onCompleted();</span>
+<span class="nc" id="L199">                } catch (Exception e) {  //Best effort only report on debug</span>
+<span class="nc" id="L200">                    logger.debug(format(&quot;Exception completing sendTransaction with channel %s,  name %s, url %s %s&quot;,</span>
+<span class="nc" id="L201">                            channelName, name, url, e.getMessage()), e);</span>
+<span class="nc" id="L202">                }</span>
+            }
+
+        }
+    }
+
+    DeliverResponse[] sendDeliver(Common.Envelope envelope) throws TransactionException {
+
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L211">            throw new TransactionException(&quot;Orderer client is shutdown&quot;);</span>
+        }
+
+<span class="nc" id="L214">        StreamObserver&lt;Common.Envelope&gt; nso = null;</span>
+
+<span class="nc" id="L216">        ManagedChannel lmanagedChannel = managedChannel;</span>
+
+<span class="nc bnc" id="L218" title="All 6 branches missed.">        if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {</span>
+
+<span class="nc" id="L220">            lmanagedChannel = channelBuilder.build();</span>
+<span class="nc" id="L221">            managedChannel = lmanagedChannel;</span>
+
+        }
+
+        try {
+
+<span class="nc" id="L227">            AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(lmanagedChannel);</span>
+
+            // final DeliverResponse[] ret = new DeliverResponse[1];
+<span class="nc" id="L230">            final List&lt;DeliverResponse&gt; retList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L231">            final List&lt;Throwable&gt; throwableList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L232">            final CountDownLatch finishLatch = new CountDownLatch(1);</span>
+
+<span class="nc" id="L234">            StreamObserver&lt;DeliverResponse&gt; so = new StreamObserver&lt;DeliverResponse&gt;() {</span>
+<span class="nc" id="L235">                boolean done = false;</span>
+
+                @Override
+                public void onNext(DeliverResponse resp) {
+
+                    // logger.info(&quot;Got Broadcast response: &quot; + resp);
+<span class="nc" id="L241">                    logger.debug(&quot;resp status value: &quot; + resp.getStatusValue() + &quot;, resp: &quot; + resp.getStatus() + &quot;, type case: &quot; + resp.getTypeCase());</span>
+
+<span class="nc bnc" id="L243" title="All 2 branches missed.">                    if (done) {</span>
+<span class="nc" id="L244">                        return;</span>
+                    }
+
+<span class="nc bnc" id="L247" title="All 2 branches missed.">                    if (resp.getTypeCase() == STATUS) {</span>
+<span class="nc" id="L248">                        done = true;</span>
+<span class="nc" id="L249">                        retList.add(0, resp);</span>
+
+<span class="nc" id="L251">                        finishLatch.countDown();</span>
+
+                    } else {
+<span class="nc" id="L254">                        retList.add(resp);</span>
+                    }
+
+<span class="nc" id="L257">                }</span>
+
+                @Override
+                public void onError(Throwable t) {
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                    if (!shutdown) {</span>
+<span class="nc" id="L262">                        logger.error(format(&quot;Received error on channel %s, orderer %s, url %s, %s&quot;,</span>
+<span class="nc" id="L263">                                channelName, name, url, t.getMessage()), t);</span>
+                    }
+<span class="nc" id="L265">                    throwableList.add(t);</span>
+<span class="nc" id="L266">                    finishLatch.countDown();</span>
+<span class="nc" id="L267">                }</span>
+
+                @Override
+                public void onCompleted() {
+<span class="nc" id="L271">                    logger.trace(&quot;onCompleted&quot;);</span>
+<span class="nc" id="L272">                    finishLatch.countDown();</span>
+<span class="nc" id="L273">                }</span>
+            };
+
+<span class="nc" id="L276">            nso = broadcast.deliver(so);</span>
+<span class="nc" id="L277">            nso.onNext(envelope);</span>
+            //nso.onCompleted();
+
+            try {
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {</span>
+<span class="nc" id="L282">                    TransactionException ex = new TransactionException(format(</span>
+<span class="nc" id="L283">                            &quot;Channel %s sendDeliver time exceeded for orderer %s, timed out at %d&quot;, channelName, name, ordererWaitTimeMilliSecs));</span>
+<span class="nc" id="L284">                    logger.error(ex.getMessage(), ex);</span>
+<span class="nc" id="L285">                    throw ex;</span>
+                }
+<span class="nc" id="L287">                logger.trace(&quot;Done waiting for reply!&quot;);</span>
+
+<span class="nc" id="L289">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L290">                logger.error(e);</span>
+<span class="nc" id="L291">            }</span>
+
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            if (!throwableList.isEmpty()) {</span>
+<span class="nc" id="L294">                Throwable throwable = throwableList.get(0);</span>
+<span class="nc" id="L295">                TransactionException e = new TransactionException(format(</span>
+<span class="nc" id="L296">                        &quot;Channel %s sendDeliver failed on orderer %s. Reason: %s&quot;, channelName, name, throwable.getMessage()), throwable);</span>
+<span class="nc" id="L297">                logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L298">                throw e;</span>
+            }
+
+<span class="nc" id="L301">            return retList.toArray(new DeliverResponse[retList.size()]);</span>
+<span class="nc" id="L302">        } catch (Throwable t) {</span>
+<span class="nc" id="L303">            managedChannel = null;</span>
+<span class="nc" id="L304">            throw t;</span>
+
+        } finally {
+<span class="nc bnc" id="L307" title="All 4 branches missed.">            if (null != nso) {</span>
+
+                try {
+<span class="nc" id="L310">                    nso.onCompleted();</span>
+<span class="nc" id="L311">                } catch (Exception e) {  //Best effort only report on debug</span>
+<span class="nc" id="L312">                    logger.debug(format(&quot;Exception completing sendDeliver with channel %s,  name %s, url %s %s&quot;,</span>
+<span class="nc" id="L313">                            channelName, name, url, e.getMessage()), e);</span>
+<span class="nc" id="L314">                }</span>
+
+            }
+        }
+    }
+
+    boolean isChannelActive() {
+<span class="nc" id="L321">        ManagedChannel lchannel = managedChannel;</span>
+<span class="nc bnc" id="L322" title="All 6 branches missed.">        return lchannel != null &amp;&amp; !lchannel.isShutdown() &amp;&amp; !lchannel.isTerminated();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

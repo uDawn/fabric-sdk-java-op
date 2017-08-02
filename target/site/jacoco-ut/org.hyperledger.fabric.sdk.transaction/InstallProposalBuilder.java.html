@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InstallProposalBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.transaction</a> &gt; <span class="el_source">InstallProposalBuilder.java</span></div><h1>InstallProposalBuilder.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk.transaction;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.protobuf.ByteString;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
+import org.hyperledger.fabric.sdk.helper.Utils;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
+
+public class InstallProposalBuilder extends LSCCProposalBuilder {
+
+<span class="fc" id="L41">    private static final Log logger = LogFactory.getLog(InstallProposalBuilder.class);</span>
+
+    private String chaincodePath;
+
+    private File chaincodeSource;
+    private String chaincodeName;
+    private String chaincodeVersion;
+    private TransactionRequest.Type chaincodeLanguage;
+<span class="fc" id="L49">    protected String action = &quot;install&quot;;</span>
+    private InputStream chaincodeInputStream;
+
+    protected InstallProposalBuilder() {
+<span class="fc" id="L53">        super();</span>
+<span class="fc" id="L54">    }</span>
+
+    public static InstallProposalBuilder newBuilder() {
+<span class="fc" id="L57">        return new InstallProposalBuilder();</span>
+
+    }
+
+    public InstallProposalBuilder chaincodePath(String chaincodePath) {
+
+<span class="fc" id="L63">        this.chaincodePath = chaincodePath;</span>
+
+<span class="fc" id="L65">        return this;</span>
+
+    }
+
+    public InstallProposalBuilder chaincodeName(String chaincodeName) {
+
+<span class="fc" id="L71">        this.chaincodeName = chaincodeName;</span>
+
+<span class="fc" id="L73">        return this;</span>
+
+    }
+
+    public InstallProposalBuilder setChaincodeSource(File chaincodeSource) {
+<span class="fc" id="L78">        this.chaincodeSource = chaincodeSource;</span>
+
+<span class="fc" id="L80">        return this;</span>
+    }
+
+    @Override
+    public FabricProposal.Proposal build() throws ProposalException {
+
+<span class="nc" id="L86">        constructInstallProposal();</span>
+<span class="nc" id="L87">        return super.build();</span>
+    }
+
+    private void constructInstallProposal() throws ProposalException {
+
+        try {
+
+<span class="nc" id="L94">            createNetModeTransaction();</span>
+
+<span class="fc" id="L96">        } catch (IOException exp) {</span>
+<span class="fc" id="L97">            logger.error(exp);</span>
+<span class="fc" id="L98">            throw new ProposalException(&quot;IO Error while creating install proposal&quot;, exp);</span>
+<span class="nc" id="L99">        }</span>
+<span class="nc" id="L100">    }</span>
+
+    private void createNetModeTransaction() throws IOException {
+<span class="fc" id="L103">        logger.debug(&quot;createNetModeTransaction&quot;);</span>
+
+<span class="fc bfc" id="L105" title="All 4 branches covered.">        if (null == chaincodeSource &amp;&amp; chaincodeInputStream == null) {</span>
+<span class="fc" id="L106">            throw new IllegalArgumentException(&quot;Missing chaincodeSource or chaincodeInputStream in InstallRequest&quot;);</span>
+        }
+
+<span class="fc bfc" id="L109" title="All 4 branches covered.">        if (null != chaincodeSource &amp;&amp; chaincodeInputStream != null) {</span>
+<span class="fc" id="L110">            throw new IllegalArgumentException(&quot;Both chaincodeSource and chaincodeInputStream in InstallRequest were set. Specify one or the other&quot;);</span>
+        }
+
+        final Type ccType;
+<span class="fc" id="L114">        File projectSourceDir = null;</span>
+<span class="fc" id="L115">        String targetPathPrefix = null;</span>
+        String dplang;
+
+<span class="pc bpc" id="L118" title="1 of 3 branches missed.">        switch (chaincodeLanguage) {</span>
+            case GO_LANG:
+
+                // chaincodePath is mandatory
+                // chaincodeSource may be a File or InputStream
+
+                //   Verify that chaincodePath is being passed
+<span class="fc bfc" id="L125" title="All 2 branches covered.">                if (Utils.isNullOrEmpty(chaincodePath)) {</span>
+<span class="fc" id="L126">                    throw new IllegalArgumentException(&quot;Missing chaincodePath in InstallRequest&quot;);</span>
+                }
+
+<span class="fc" id="L129">                dplang = &quot;Go&quot;;</span>
+<span class="fc" id="L130">                ccType = Type.GOLANG;</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">                if (null != chaincodeSource) {</span>
+
+<span class="fc" id="L133">                    projectSourceDir = Paths.get(chaincodeSource.toString(), &quot;src&quot;, chaincodePath).toFile();</span>
+<span class="fc" id="L134">                    targetPathPrefix = Paths.get(&quot;src&quot;, chaincodePath).toString();</span>
+                }
+                break;
+
+            case JAVA:
+
+                // chaincodePath is not applicable and must be null
+                // chaincodeSource may be a File or InputStream
+
+                //   Verify that chaincodePath is null
+<span class="fc bfc" id="L144" title="All 2 branches covered.">                if (null != chaincodePath) {</span>
+<span class="fc" id="L145">                    throw new IllegalArgumentException(&quot;chaincodePath must be null for Java chaincode&quot;);</span>
+                }
+
+<span class="fc" id="L148">                dplang = &quot;Java&quot;;</span>
+<span class="fc" id="L149">                ccType = Type.JAVA;</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">                if (null != chaincodeSource) {</span>
+<span class="fc" id="L151">                    targetPathPrefix = &quot;src&quot;;</span>
+<span class="fc" id="L152">                    projectSourceDir = Paths.get(chaincodeSource.toString()).toFile();</span>
+                }
+                break;
+
+            default:
+<span class="nc" id="L157">                throw new IllegalArgumentException(&quot;Unexpected chaincode language: &quot; + chaincodeLanguage);</span>
+        }
+
+        final byte[] data;
+<span class="fc" id="L161">        String chaincodeID = chaincodeName + &quot;::&quot; + chaincodePath + &quot;::&quot; + chaincodeVersion;</span>
+
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (chaincodeSource != null) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">            if (!projectSourceDir.exists()) {</span>
+<span class="fc" id="L165">                final String message = &quot;The project source directory does not exist: &quot; + projectSourceDir.getAbsolutePath();</span>
+<span class="fc" id="L166">                logger.error(message);</span>
+<span class="fc" id="L167">                throw new IllegalArgumentException(message);</span>
+            }
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">            if (!projectSourceDir.isDirectory()) {</span>
+<span class="fc" id="L170">                final String message = &quot;The project source directory is not a directory: &quot; + projectSourceDir.getAbsolutePath();</span>
+<span class="fc" id="L171">                logger.error(message);</span>
+<span class="fc" id="L172">                throw new IllegalArgumentException(message);</span>
+            }
+
+<span class="nc" id="L175">            logger.info(format(&quot;Installing '%s'  %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s'&quot;,</span>
+<span class="nc" id="L176">                    chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));</span>
+
+            // generate chaincode source tar
+<span class="nc" id="L179">            data = Utils.generateTarGz(projectSourceDir, targetPathPrefix);</span>
+
+        } else {
+<span class="fc" id="L182">            logger.info(format(&quot;Installing '%s'  %s chaincode chaincodePath:'%s' from input stream&quot;,</span>
+                    chaincodeID, dplang, chaincodePath));
+<span class="nc" id="L184">            data = IOUtils.toByteArray(chaincodeInputStream);</span>
+        }
+
+<span class="nc" id="L187">        final ChaincodeDeploymentSpec depspec = createDeploymentSpec(</span>
+                ccType, this.chaincodeName, this.chaincodePath, this.chaincodeVersion, null, data);
+
+        // set args
+<span class="nc" id="L191">        final List&lt;ByteString&gt; argList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L192">        argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));</span>
+<span class="nc" id="L193">        argList.add(depspec.toByteString());</span>
+<span class="nc" id="L194">        args(argList);</span>
+
+<span class="nc" id="L196">    }</span>
+
+    public void setChaincodeLanguage(TransactionRequest.Type chaincodeLanguage) {
+<span class="fc" id="L199">        this.chaincodeLanguage = chaincodeLanguage;</span>
+<span class="fc" id="L200">    }</span>
+
+    public void chaincodeVersion(String chaincodeVersion) {
+<span class="fc" id="L203">        this.chaincodeVersion = chaincodeVersion;</span>
+<span class="fc" id="L204">    }</span>
+
+    public void setChaincodeInputStream(InputStream chaincodeInputStream) {
+<span class="fc" id="L207">        this.chaincodeInputStream = chaincodeInputStream;</span>
+
+<span class="fc" id="L209">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

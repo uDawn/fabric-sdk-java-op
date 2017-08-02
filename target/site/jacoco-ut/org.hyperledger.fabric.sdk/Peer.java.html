@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Peer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">Peer.java</span></div><h1>Peer.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.Objects;
+import java.util.Properties;
+
+import com.google.common.util.concurrent.ListenableFuture;
+import io.netty.util.internal.StringUtil;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.PeerException;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+
+/**
+ * The Peer class represents a peer to which SDK sends deploy, or query proposals requests.
+ */
+public class Peer {
+<span class="fc" id="L36">    private static final Log logger = LogFactory.getLog(Peer.class);</span>
+    private volatile EndorserClient endorserClent;
+    private final Properties properties;
+    private final String name;
+    private final String url;
+<span class="fc" id="L41">    private boolean shutdown = false;</span>
+    private Channel channel;
+
+<span class="fc" id="L44">    Peer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {</span>
+
+<span class="fc" id="L46">        Exception e = checkGrpcUrl(grpcURL);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (e != null) {</span>
+<span class="fc" id="L48">            throw new InvalidArgumentException(&quot;Bad peer url.&quot;, e);</span>
+
+        }
+
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (StringUtil.isNullOrEmpty(name)) {</span>
+<span class="fc" id="L53">            throw new InvalidArgumentException(&quot;Invalid name for peer&quot;);</span>
+        }
+
+<span class="fc" id="L56">        this.url = grpcURL;</span>
+<span class="fc" id="L57">        this.name = name;</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.</span>
+
+<span class="fc" id="L60">    }</span>
+
+    /**
+     * Peer's name
+     *
+     * @return return the peer's name.
+     */
+
+    public String getName() {
+
+<span class="fc" id="L70">        return name;</span>
+    }
+
+    public Properties getProperties() {
+
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        return properties == null ? null : (Properties) properties.clone();</span>
+    }
+
+    /**
+     * Set the channel the peer is on.
+     *
+     * @param channel
+     */
+
+    void setChannel(Channel channel) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (null != this.channel) {</span>
+<span class="fc" id="L87">            throw new InvalidArgumentException(format(&quot;Can not add peer %s to channel %s because it already belongs to channel %s.&quot;,</span>
+<span class="fc" id="L88">                    name, channel.getName(), this.channel.getName()));</span>
+        }
+
+<span class="fc" id="L91">        this.channel = channel;</span>
+
+<span class="fc" id="L93">    }</span>
+
+    void unsetChannel() {
+<span class="fc" id="L96">        channel = null;</span>
+
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * The channel the peer is set on.
+     *
+     * @return
+     */
+
+    Channel getChannel() {
+
+<span class="fc" id="L108">        return channel;</span>
+
+    }
+
+    /**
+     * Get the URL of the peer.
+     *
+     * @return {string} Get the URL associated with the peer.
+     */
+    public String getUrl() {
+
+<span class="fc" id="L119">        return this.url;</span>
+    }
+
+    /**
+     * for use in list of peers comparisons , e.g. list.contains() calls
+     *
+     * @param otherPeer the peer instance to compare against
+     * @return true if both peer instances have the same name and url
+     */
+    @Override
+    public boolean equals(Object otherPeer) {
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (this == otherPeer) {</span>
+<span class="fc" id="L131">            return true;</span>
+        }
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (otherPeer == null) {</span>
+<span class="nc" id="L134">            return false;</span>
+        }
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        if (!(otherPeer instanceof Peer)) {</span>
+<span class="nc" id="L137">            return false;</span>
+        }
+<span class="fc" id="L139">        Peer p = (Peer) otherPeer;</span>
+<span class="pc bpc" id="L140" title="3 of 4 branches missed.">        return Objects.equals(this.name, p.name) &amp;&amp; Objects.equals(this.url, p.url);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L145">        return Objects.hash(name, url);</span>
+    }
+
+    ListenableFuture&lt;FabricProposalResponse.ProposalResponse&gt; sendProposalAsync(FabricProposal.SignedProposal proposal)
+            throws PeerException, InvalidArgumentException {
+<span class="fc" id="L150">        checkSendProposal(proposal);</span>
+
+<span class="fc" id="L152">        logger.debug(format(&quot;peer.sendProposalAsync name: %s, url: %s&quot;, name, url));</span>
+
+<span class="fc" id="L154">        EndorserClient localEndorserClient = endorserClent; //work off thread local copy.</span>
+
+<span class="pc bpc" id="L156" title="2 of 4 branches missed.">        if (null == localEndorserClient || !localEndorserClient.isChannelActive()) {</span>
+<span class="nc" id="L157">            endorserClent = new EndorserClient(new Endpoint(url, properties).getChannelBuilder());</span>
+<span class="nc" id="L158">            localEndorserClient = endorserClent;</span>
+        }
+
+        try {
+<span class="fc" id="L162">            return localEndorserClient.sendProposalAsync(proposal);</span>
+<span class="fc" id="L163">        } catch (Throwable t) {</span>
+<span class="fc" id="L164">            endorserClent = null;</span>
+<span class="fc" id="L165">            throw t;</span>
+        }
+    }
+
+    FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal)
+            throws PeerException, InvalidArgumentException {
+<span class="fc" id="L171">        checkSendProposal(proposal);</span>
+
+<span class="fc" id="L173">        logger.debug(format(&quot;peer.sendProposalAsync name: %s, url: %s&quot;, name, url));</span>
+
+<span class="fc" id="L175">        EndorserClient localEndorserClient = endorserClent; //work off thread local copy.</span>
+
+<span class="pc bpc" id="L177" title="3 of 4 branches missed.">        if (null == localEndorserClient || !localEndorserClient.isChannelActive()) {</span>
+<span class="fc" id="L178">            endorserClent = new EndorserClient(new Endpoint(url, properties).getChannelBuilder());</span>
+<span class="fc" id="L179">            localEndorserClient = endorserClent;</span>
+        }
+
+        try {
+<span class="nc" id="L183">            return localEndorserClient.sendProposal(proposal);</span>
+<span class="fc" id="L184">        } catch (Throwable t) {</span>
+<span class="fc" id="L185">            endorserClent = null;</span>
+<span class="fc" id="L186">            throw t;</span>
+        }
+    }
+
+    private void checkSendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
+
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">        if (shutdown) {</span>
+<span class="nc" id="L193">            throw new PeerException(format(&quot;Peer %s was shutdown.&quot;, name));</span>
+        }
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (proposal == null) {</span>
+<span class="fc" id="L196">            throw new PeerException(&quot;Proposal is null&quot;);</span>
+        }
+<span class="fc" id="L198">        Exception e = checkGrpcUrl(url);</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        if (e != null) {</span>
+<span class="nc" id="L200">            throw new InvalidArgumentException(&quot;Bad peer url.&quot;, e);</span>
+
+        }
+<span class="fc" id="L203">    }</span>
+
+    static Peer createNewInstance(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+
+<span class="fc" id="L207">        return new Peer(name, grpcURL, properties);</span>
+    }
+
+    synchronized void shutdown(boolean force) {
+<span class="fc bfc" id="L211" title="All 2 branches covered.">        if (shutdown) {</span>
+<span class="fc" id="L212">            return;</span>
+        }
+<span class="fc" id="L214">        shutdown = true;</span>
+<span class="fc" id="L215">        channel = null;</span>
+
+<span class="fc" id="L217">        EndorserClient lendorserClent = endorserClent;</span>
+
+        //allow resources to finalize
+
+<span class="fc" id="L221">        endorserClent = null;</span>
+
+<span class="fc bfc" id="L223" title="All 2 branches covered.">        if (lendorserClent == null) {</span>
+<span class="fc" id="L224">            return;</span>
+        }
+
+<span class="fc" id="L227">        lendorserClent.shutdown(force);</span>
+<span class="fc" id="L228">    }</span>
+
+    @Override
+    protected void finalize() throws Throwable {
+<span class="fc" id="L232">        shutdown(true);</span>
+<span class="fc" id="L233">        super.finalize();</span>
+<span class="fc" id="L234">    }</span>
+} // end Peer
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

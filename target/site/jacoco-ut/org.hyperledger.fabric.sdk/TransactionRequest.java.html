@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">TransactionRequest.java</span></div><h1>TransactionRequest.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Config;
+
+/**
+ * A base transaction request common for InstallProposalRequest,trRequest, and QueryRequest.
+ */
+public class TransactionRequest {
+    private User userContext;
+
+<span class="fc" id="L30">    boolean submitted = false;</span>
+
+<span class="fc" id="L32">    private final Config config = Config.getConfig();</span>
+
+    // The local path containing the chaincode to deploy in network mode.
+    protected String chaincodePath;
+    // The name identifier for the chaincode to deploy in development mode.
+    protected String chaincodeName;
+
+    // The version of the chaincode
+    protected String chaincodeVersion;
+    // The chaincode ID as provided by the 'submitted' event emitted by a TransactionContext
+    private ChaincodeID chaincodeID;
+
+    // The name of the function to invoke
+    protected String fcn;
+    // The arguments to pass to the chaincode invocation as strings
+    protected ArrayList&lt;String&gt; args;
+    // the arguments to pass to the chaincode invocation as byte arrays
+    protected ArrayList&lt;byte[]&gt; argBytes;
+
+    // Chaincode language
+<span class="fc" id="L52">    protected Type chaincodeLanguage = Type.GO_LANG;</span>
+    // The endorsementPolicy associated with this chaincode
+<span class="fc" id="L54">    private ChaincodeEndorsementPolicy endorsementPolicy = null;</span>
+    // The timeout for a single proposal request to endorser in milliseconds
+<span class="fc" id="L56">    protected long proposalWaitTime = config.getProposalWaitTime();</span>
+
+    protected Map&lt;String, byte[]&gt; transientMap;
+
+    /**
+     * The user context to use on this request.
+     *
+     * @return User context that is used for signing
+     */
+    User getUserContext() {
+<span class="nc" id="L66">        return userContext;</span>
+    }
+
+    /**
+     * Set the user context for this request. This context will override the user context set
+     * on {@link HFClient#setUserContext(User)}
+     *
+     * @param userContext The user context for this request used for signing.
+     */
+    public void setUserContext(User userContext) {
+<span class="nc" id="L76">        this.userContext = userContext;</span>
+<span class="nc" id="L77">    }</span>
+
+    /**
+     * Transient data added to the proposal that is not added to the ledger.
+     *
+     * @return Map of strings to bytes that's added to the proposal
+     */
+
+    public Map&lt;String, byte[]&gt; getTransientMap() {
+<span class="nc" id="L86">        return transientMap;</span>
+    }
+
+    /**
+     * Determines whether an empty channel ID should be set on proposals built
+     * from this request. Some peer requests (e.g. queries to QSCC) require the
+     * field to be blank. Subclasses should override this method as needed.
+     * &lt;p&gt;
+     * This implementation returns {@code false}.
+     *
+     * @return {@code true} if an empty channel ID should be used; otherwise
+     * {@code false}.
+     */
+    public boolean noChannelID() {
+<span class="nc" id="L100">        return false;</span>
+    }
+
+    /**
+     * Some proposal responses from Fabric are not signed. We default to always verify a ProposalResponse.
+     * Subclasses should override this method if you do not want the response signature to be verified
+     *
+     * @return true if proposal response is to be checked for a valid signature
+     */
+    public boolean doVerify() {
+<span class="nc" id="L110">        return true;</span>
+    }
+
+    public String getChaincodePath() {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        return null == chaincodePath ? &quot;&quot; : chaincodePath;</span>
+    }
+
+    public TransactionRequest setChaincodePath(String chaincodePath) {
+
+<span class="nc" id="L119">        this.chaincodePath = chaincodePath;</span>
+<span class="nc" id="L120">        return this;</span>
+    }
+
+    public String getChaincodeName() {
+<span class="nc" id="L124">        return chaincodeName;</span>
+    }
+
+    public TransactionRequest setChaincodeName(String chaincodeName) {
+<span class="nc" id="L128">        this.chaincodeName = chaincodeName;</span>
+<span class="nc" id="L129">        return this;</span>
+    }
+
+    public TransactionRequest setChaincodeVersion(String chaincodeVersion) {
+<span class="nc" id="L133">        this.chaincodeVersion = chaincodeVersion;</span>
+<span class="nc" id="L134">        return this;</span>
+    }
+
+    public String getChaincodeVersion() {
+<span class="nc" id="L138">        return chaincodeVersion;</span>
+    }
+
+    public ChaincodeID getChaincodeID() {
+<span class="nc" id="L142">        return chaincodeID;</span>
+    }
+
+    public void setChaincodeID(ChaincodeID chaincodeID) {
+
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (chaincodeName != null) {</span>
+
+<span class="nc" id="L149">            throw new IllegalArgumentException(&quot;Chaincode name has already been set.&quot;);</span>
+        }
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (chaincodeVersion != null) {</span>
+
+<span class="nc" id="L153">            throw new IllegalArgumentException(&quot;Chaincode version has already been set.&quot;);</span>
+        }
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (chaincodePath != null) {</span>
+
+<span class="nc" id="L158">            throw new IllegalArgumentException(&quot;Chaincode path has already been set.&quot;);</span>
+        }
+
+<span class="nc" id="L161">        this.chaincodeID = chaincodeID;</span>
+<span class="nc" id="L162">        chaincodeName = chaincodeID.getName();</span>
+<span class="nc" id="L163">        chaincodePath = chaincodeID.getPath();</span>
+<span class="nc" id="L164">        chaincodeVersion = chaincodeID.getVersion();</span>
+<span class="nc" id="L165">    }</span>
+
+    public String getFcn() {
+<span class="nc" id="L168">        return fcn;</span>
+    }
+
+    public TransactionRequest setFcn(String fcn) {
+<span class="nc" id="L172">        this.fcn = fcn;</span>
+<span class="nc" id="L173">        return this;</span>
+    }
+
+    public ArrayList&lt;String&gt; getArgs() {
+<span class="nc" id="L177">        return args;</span>
+    }
+
+    public TransactionRequest setArgs(String[] args) {
+
+<span class="nc" id="L182">        this.args = new ArrayList&lt;&gt;(Arrays.asList(args));</span>
+<span class="nc" id="L183">        return this;</span>
+    }
+
+    public TransactionRequest setArgBytes(ArrayList&lt;byte[]&gt; args) {
+<span class="nc" id="L187">        this.argBytes = args;</span>
+<span class="nc" id="L188">        return this;</span>
+    }
+
+    public ArrayList&lt;byte[]&gt; getArgBytes() {
+<span class="nc" id="L192">        return argBytes;</span>
+    }
+
+    public TransactionRequest setArgBytes(byte[][] args) {
+
+<span class="nc" id="L197">        this.argBytes = new ArrayList&lt;&gt;(Arrays.asList(args));</span>
+<span class="nc" id="L198">        return this;</span>
+    }
+
+    public TransactionRequest setArgs(ArrayList&lt;String&gt; args) {
+<span class="nc" id="L202">        this.args = args;</span>
+<span class="nc" id="L203">        return this;</span>
+    }
+
+    //Mirror Fabric try not expose any of its classes
+<span class="pc" id="L207">    public enum Type {</span>
+<span class="fc" id="L208">        JAVA,</span>
+<span class="fc" id="L209">        GO_LANG</span>
+    }
+
+    public Type getChaincodeLanguage() {
+<span class="nc" id="L213">        return chaincodeLanguage;</span>
+    }
+
+    /**
+     * The chaincode language type: default type Type.GO_LANG
+     *
+     * @param chaincodeLanguage . Type.Java Type.GO_LANG
+     */
+    public void setChaincodeLanguage(Type chaincodeLanguage) {
+<span class="nc" id="L222">        this.chaincodeLanguage = chaincodeLanguage;</span>
+<span class="nc" id="L223">    }</span>
+
+    /**
+     * sets the endorsementPolicy associated with the chaincode of this transaction
+     *
+     * @param policy a Policy object
+     * @see ChaincodeEndorsementPolicy
+     */
+    public void setChaincodeEndorsementPolicy(ChaincodeEndorsementPolicy policy) {
+<span class="nc" id="L232">        this.endorsementPolicy = policy;</span>
+<span class="nc" id="L233">    }</span>
+
+    /**
+     * returns the Policy object associated with the chaincode of this transaction
+     *
+     * @return a Policy object
+     * @see ChaincodeEndorsementPolicy
+     */
+    public ChaincodeEndorsementPolicy getChaincodeEndorsementPolicy() {
+<span class="nc" id="L242">        return this.endorsementPolicy;</span>
+    }
+
+    /**
+     * Gets the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @return the timeout for a single proposal request to endorser in milliseconds
+     */
+    public long getProposalWaitTime() {
+<span class="nc" id="L251">        return proposalWaitTime;</span>
+    }
+
+    /**
+     * Sets the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @param proposalWaitTime the timeout for a single proposal request to endorser in milliseconds
+     */
+    public void setProposalWaitTime(long proposalWaitTime) {
+<span class="nc" id="L260">        this.proposalWaitTime = proposalWaitTime;</span>
+<span class="nc" id="L261">    }</span>
+
+    /**
+     * If this request has been submitted already.
+     *
+     * @return true if the already submitted.
+     */
+
+    public boolean isSubmitted() {
+<span class="nc" id="L270">        return submitted;</span>
+    }
+
+    void setSubmitted() throws InvalidArgumentException {
+
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">        if (submitted) {</span>
+            // Has already been submitted.
+<span class="nc" id="L277">            throw new InvalidArgumentException(&quot;Request has been already submitted and can not be reused.&quot;);</span>
+        }
+<span class="fc" id="L279">        User.userContextCheck(userContext);</span>
+<span class="fc" id="L280">        this.submitted = true;</span>
+<span class="fc" id="L281">    }</span>
+
+<span class="fc" id="L283">    protected TransactionRequest(User userContext) {</span>
+<span class="fc" id="L284">        this.userContext = userContext;</span>
+<span class="fc" id="L285">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

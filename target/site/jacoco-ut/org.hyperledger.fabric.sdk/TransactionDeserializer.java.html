@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionDeserializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">TransactionDeserializer.java</span></div><h1>TransactionDeserializer.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
+
+import static org.hyperledger.fabric.protos.peer.FabricTransaction.Transaction;
+
+class TransactionDeserializer {
+    private final ByteString byteString;
+    private WeakReference&lt;Transaction&gt; transaction;
+<span class="nc" id="L34">    private final Map&lt;Integer, WeakReference&lt;TransactionActionDeserializer&gt;&gt; transactionActions =</span>
+<span class="nc" id="L35">            Collections.synchronizedMap(new WeakHashMap&lt;Integer, WeakReference&lt;TransactionActionDeserializer&gt;&gt;());</span>
+
+<span class="nc" id="L37">    TransactionDeserializer(ByteString byteString) {</span>
+<span class="nc" id="L38">        this.byteString = byteString;</span>
+<span class="nc" id="L39">    }</span>
+
+    Transaction getTransaction() {
+<span class="nc" id="L42">        Transaction ret = null;</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (transaction != null) {</span>
+<span class="nc" id="L45">            ret = transaction.get();</span>
+
+        }
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (ret == null) {</span>
+
+            try {
+<span class="nc" id="L51">                ret = Transaction.parseFrom(byteString);</span>
+<span class="nc" id="L52">            } catch (InvalidProtocolBufferException e) {</span>
+<span class="nc" id="L53">                throw new InvalidProtocolBufferRuntimeException(e);</span>
+<span class="nc" id="L54">            }</span>
+
+<span class="nc" id="L56">            transaction = new WeakReference&lt;&gt;(ret);</span>
+
+        }
+
+<span class="nc" id="L60">        return ret;</span>
+
+    }
+
+    int getActionsCount() {
+
+<span class="nc" id="L66">        return getTransaction().getActionsCount();</span>
+    }
+
+    TransactionActionDeserializer getTransactionAction(int index) {
+
+<span class="nc" id="L71">        final Transaction transaction = getTransaction();</span>
+
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (index &gt;= getActionsCount()) {</span>
+<span class="nc" id="L74">            return null;</span>
+        }
+
+<span class="nc" id="L77">        WeakReference&lt;TransactionActionDeserializer&gt; envelopeWeakReference = transactionActions.get(index);</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (null != envelopeWeakReference) {</span>
+<span class="nc" id="L79">            TransactionActionDeserializer ret = envelopeWeakReference.get();</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            if (null != ret) {</span>
+<span class="nc" id="L81">                return ret;</span>
+            }
+        }
+
+<span class="nc" id="L85">        TransactionActionDeserializer transactionActionDeserialize = new TransactionActionDeserializer(transaction.getActions(index));</span>
+
+<span class="nc" id="L87">        transactionActions.put(index, new WeakReference&lt;&gt;(transactionActionDeserialize));</span>
+
+<span class="nc" id="L89">        return transactionActionDeserialize;</span>
+
+    }
+
+    Iterable&lt;TransactionActionDeserializer&gt; getTransactionActions() {
+
+<span class="nc" id="L95">        return new TransactionActionIterable();</span>
+
+    }
+
+    class TransactionActionIterator implements Iterator&lt;TransactionActionDeserializer&gt; {
+<span class="nc" id="L100">        int ci = 0;</span>
+        final int max;
+
+<span class="nc" id="L103">        TransactionActionIterator() {</span>
+<span class="nc" id="L104">            max = getActionsCount();</span>
+
+<span class="nc" id="L106">        }</span>
+
+        @Override
+        public boolean hasNext() {
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            return ci &lt; max;</span>
+        }
+
+        @Override
+        public TransactionActionDeserializer next() {
+<span class="nc" id="L115">            return getTransactionAction(ci++);</span>
+        }
+    }
+
+<span class="nc" id="L119">    class TransactionActionIterable implements Iterable&lt;TransactionActionDeserializer&gt; {</span>
+        @Override
+        public Iterator&lt;TransactionActionDeserializer&gt; iterator() {
+<span class="nc" id="L122">            return new TransactionActionIterator();</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

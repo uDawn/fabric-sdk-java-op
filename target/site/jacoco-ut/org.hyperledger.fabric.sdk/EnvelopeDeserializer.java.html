@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnvelopeDeserializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">EnvelopeDeserializer.java</span></div><h1>EnvelopeDeserializer.java</h1><pre class="source lang-java linenums">/*
+ *
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.lang.ref.WeakReference;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
+import org.hyperledger.fabric.protos.common.Common.Envelope;
+import org.hyperledger.fabric.protos.common.Common.Payload;
+import org.hyperledger.fabric.protos.peer.FabricTransaction;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
+
+class EnvelopeDeserializer {
+    protected final ByteString byteString;
+    private final byte validcode;
+    private WeakReference&lt;Envelope&gt; envelope;
+    private WeakReference&lt;PayloadDeserializer&gt; payload;
+
+<span class="fc" id="L35">    EnvelopeDeserializer(ByteString byteString, byte validcode) {</span>
+<span class="fc" id="L36">        this.byteString = byteString;</span>
+
+<span class="fc" id="L38">        this.validcode = validcode;</span>
+<span class="fc" id="L39">    }</span>
+
+    Envelope getEnvelope() {
+<span class="fc" id="L42">        Envelope ret = null;</span>
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (envelope != null) {</span>
+<span class="fc" id="L45">            ret = envelope.get();</span>
+
+        }
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (ret == null) {</span>
+
+            try {
+<span class="fc" id="L51">                ret = Envelope.parseFrom(byteString);</span>
+<span class="nc" id="L52">            } catch (InvalidProtocolBufferException e) {</span>
+<span class="nc" id="L53">                throw new InvalidProtocolBufferRuntimeException(e);</span>
+<span class="fc" id="L54">            }</span>
+
+<span class="fc" id="L56">            envelope = new WeakReference&lt;&gt;(ret);</span>
+
+        }
+
+        //Todo         ret.getSignature();
+
+<span class="fc" id="L62">        return ret;</span>
+
+    }
+
+    PayloadDeserializer getPayload() {
+
+<span class="nc" id="L68">        PayloadDeserializer ret = null;</span>
+
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (payload != null) {</span>
+<span class="nc" id="L71">            ret = payload.get();</span>
+
+        }
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (ret == null) {</span>
+
+<span class="nc" id="L76">            ret = new PayloadDeserializer(getEnvelope().getPayload());</span>
+<span class="nc" id="L77">            payload = new WeakReference&lt;&gt;(ret);</span>
+
+        }
+
+<span class="nc" id="L81">        return ret;</span>
+    }
+
+<span class="fc" id="L84">    private Integer type = null;</span>
+
+    int getType() {
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        if (type == null) {</span>
+
+<span class="fc" id="L89">            type = getPayload().getHeader().getChannelHeader().getType();</span>
+
+        }
+<span class="fc" id="L92">        return type;</span>
+    }
+
+    /**
+     * @return whether this Transaction is marked as TxValidationCode.VALID
+     */
+    public boolean isValid() {
+
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        return validcode == FabricTransaction.TxValidationCode.VALID_VALUE;</span>
+    }
+
+    /**
+     * @return the validation code of this Transaction (enumeration TxValidationCode in Transaction.proto)
+     */
+    public byte validationCode() {
+
+<span class="fc" id="L108">        return validcode;</span>
+    }
+
+    static EnvelopeDeserializer newInstance(ByteString byteString, byte b) throws InvalidProtocolBufferException {
+
+        EnvelopeDeserializer ret;
+
+<span class="fc" id="L115">        final int type = ChannelHeader.parseFrom(Payload.parseFrom(Envelope.parseFrom(byteString).getPayload())</span>
+<span class="fc" id="L116">                .getHeader().getChannelHeader()).getType();</span>
+
+       /*
+
+    MESSAGE = 0;                   // Used for messages which are signed but opaque
+    CONFIG = 1;                    // Used for messages which express the channel config
+    CONFIG_UPDATE = 2;             // Used for transactions which update the channel config
+    ENDORSER_TRANSACTION = 3;      // Used by the SDK to submit endorser based transactions
+    ORDERER_TRANSACTION = 4;       // Used internally by the orderer for management
+    DELIVER_SEEK_INFO = 5;         // Used as the type for Envelope messages submitted to instruct the Deliver API to seek
+    CHAINCODE_PACKAGE = 6;         // Used for packaging chaincode artifacts for install
+
+     */
+
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        switch (type) {</span>
+            case 3:
+<span class="fc" id="L132">                ret = new EndorserTransactionEnvDeserializer(byteString, b);</span>
+<span class="fc" id="L133">                break;</span>
+            default: //just assume base properties.
+<span class="nc" id="L135">                ret = new EnvelopeDeserializer(byteString, b);</span>
+                break;
+        }
+<span class="fc" id="L138">        return ret;</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

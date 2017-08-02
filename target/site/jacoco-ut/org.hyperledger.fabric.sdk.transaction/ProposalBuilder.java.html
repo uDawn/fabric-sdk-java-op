@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProposalBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.transaction</a> &gt; <span class="el_source">ProposalBuilder.java</span></div><h1>ProposalBuilder.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk.transaction;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import com.google.protobuf.ByteString;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.common.Common.HeaderType;
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
+import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeProposalPayload;
+import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
+
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hyperledger.fabric.sdk.helper.Utils.logString;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
+
+public class ProposalBuilder {
+
+<span class="fc" id="L47">    private static final Log logger = LogFactory.getLog(ProposalBuilder.class);</span>
+<span class="fc" id="L48">    private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();</span>
+
+    private Chaincode.ChaincodeID chaincodeID;
+    private List&lt;ByteString&gt; argList;
+    protected TransactionContext context;
+    protected TransactionRequest request;
+<span class="fc" id="L54">    protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;</span>
+<span class="fc" id="L55">    protected Map&lt;String, byte[]&gt; transientMap = null;</span>
+
+    // The channel that is being targeted . note blank string means no specific channel
+    private String channelID;
+
+<span class="fc" id="L60">    protected ProposalBuilder() {</span>
+<span class="fc" id="L61">    }</span>
+
+    public static ProposalBuilder newBuilder() {
+<span class="nc" id="L64">        return new ProposalBuilder();</span>
+    }
+
+    public ProposalBuilder chaincodeID(Chaincode.ChaincodeID chaincodeID) {
+<span class="fc" id="L68">        this.chaincodeID = chaincodeID;</span>
+<span class="fc" id="L69">        return this;</span>
+    }
+
+    public ProposalBuilder args(List&lt;ByteString&gt; argList) {
+<span class="fc" id="L73">        this.argList = argList;</span>
+<span class="fc" id="L74">        return this;</span>
+    }
+
+    public ProposalBuilder context(TransactionContext context) {
+<span class="fc" id="L78">        this.context = context;</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if (null == channelID) {</span>
+<span class="fc" id="L80">            channelID = context.getChannel().getName(); //Default to context channel.</span>
+        }
+<span class="fc" id="L82">        return this;</span>
+    }
+
+    public ProposalBuilder request(TransactionRequest request) {
+<span class="nc" id="L86">        this.request = request;</span>
+
+<span class="nc" id="L88">        chaincodeID(request.getChaincodeID().getFabricChaincodeID());</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        ccType(request.getChaincodeLanguage() == TransactionRequest.Type.JAVA ?</span>
+                Chaincode.ChaincodeSpec.Type.JAVA : Chaincode.ChaincodeSpec.Type.GOLANG);
+
+<span class="nc" id="L92">        transientMap = request.getTransientMap();</span>
+
+<span class="nc" id="L94">        return this;</span>
+    }
+
+    public FabricProposal.Proposal build() throws ProposalException {
+<span class="pc bpc" id="L98" title="3 of 4 branches missed.">        if (request != null &amp;&amp; request.noChannelID()) {</span>
+<span class="nc" id="L99">            channelID = &quot;&quot;;</span>
+        }
+<span class="fc" id="L101">        return createFabricProposal(channelID, chaincodeID);</span>
+    }
+
+    private FabricProposal.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID) {
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (null == transientMap) {</span>
+<span class="fc" id="L106">            transientMap = Collections.emptyMap();</span>
+        }
+
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">        if (IS_DEBUG_LEVEL) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            for (Entry&lt;String, byte[]&gt; tme : transientMap.entrySet()) {</span>
+<span class="nc" id="L111">                logger.debug(format(&quot;transientMap('%s', '%s'))&quot;, logString(tme.getKey()),</span>
+<span class="nc" id="L112">                        logString(new String(tme.getValue(), UTF_8))));</span>
+<span class="nc" id="L113">            }</span>
+        }
+<span class="fc" id="L115">        ChaincodeHeaderExtension chaincodeHeaderExtension = ChaincodeHeaderExtension.newBuilder()</span>
+<span class="fc" id="L116">                .setChaincodeId(chaincodeID).build();</span>
+
+<span class="fc" id="L118">        Common.ChannelHeader chainHeader = createChannelHeader(HeaderType.ENDORSER_TRANSACTION,</span>
+<span class="fc" id="L119">                context.getTxID(), channelID, context.getEpoch(), context.getFabricTimestamp(), chaincodeHeaderExtension);</span>
+
+<span class="fc" id="L121">        ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(</span>
+                chaincodeID,
+                ccType);
+
+        //Convert to bytestring map.
+<span class="fc" id="L126">        Map&lt;String, ByteString&gt; bsm = new HashMap&lt;&gt;(transientMap.size());</span>
+
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        for (Entry&lt;String, byte[]&gt; tme : transientMap.entrySet()) {</span>
+<span class="nc" id="L129">            bsm.put(tme.getKey(), ByteString.copyFrom(tme.getValue()));</span>
+
+<span class="nc" id="L131">        }</span>
+
+<span class="fc" id="L133">        ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()</span>
+<span class="fc" id="L134">                .setInput(chaincodeInvocationSpec.toByteString())</span>
+<span class="fc" id="L135">                .putAllTransientMap(bsm)</span>
+<span class="fc" id="L136">                .build();</span>
+
+<span class="fc" id="L138">        Common.Header header = Common.Header.newBuilder()</span>
+<span class="fc" id="L139">                .setSignatureHeader(getSignatureHeaderAsByteString(context))</span>
+<span class="fc" id="L140">                .setChannelHeader(chainHeader.toByteString())</span>
+<span class="fc" id="L141">                .build();</span>
+
+<span class="fc" id="L143">        return FabricProposal.Proposal.newBuilder()</span>
+<span class="fc" id="L144">                .setHeader(header.toByteString())</span>
+<span class="fc" id="L145">                .setPayload(payload.toByteString())</span>
+<span class="fc" id="L146">                .build();</span>
+
+    }
+
+    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chaincodeID, ChaincodeSpec.Type langType) {
+
+<span class="fc" id="L152">        List&lt;ByteString&gt; allArgs = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L154" title="2 of 4 branches missed.">        if (argList != null &amp;&amp; argList.size() &gt; 0) {</span>
+            // If we already have an argList then the Builder subclasses have already set the arguments
+            // for chaincodeInput. Accept the list and pass it on to the chaincodeInput builder
+            // TODO need to clean this logic up so that common protobuf struct builds are in one place
+<span class="fc" id="L158">            allArgs = argList;</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        } else if (request != null) {</span>
+            // if argList is empty and we have a Request, build the chaincodeInput args array from the Request args and argbytes lists
+<span class="nc" id="L161">            allArgs.add(ByteString.copyFrom(request.getFcn(), UTF_8));</span>
+<span class="nc" id="L162">            List&lt;String&gt; args = request.getArgs();</span>
+<span class="nc bnc" id="L163" title="All 4 branches missed.">            if (args != null &amp;&amp; args.size() &gt; 0) {</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                for (String arg : args) {</span>
+<span class="nc" id="L165">                    allArgs.add(ByteString.copyFrom(arg.getBytes(UTF_8)));</span>
+<span class="nc" id="L166">                }</span>
+            }
+            // TODO currently assume that chaincodeInput args are strings followed by byte[].
+            // Either agree with Fabric folks that this will always be the case or modify all Builders to expect
+            // a List of Objects and determine if each list item is a string or a byte array
+<span class="nc" id="L171">            List&lt;byte[]&gt; argBytes = request.getArgBytes();</span>
+<span class="nc bnc" id="L172" title="All 4 branches missed.">            if (argBytes != null &amp;&amp; argBytes.size() &gt; 0) {</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                for (byte[] arg : argBytes) {</span>
+<span class="nc" id="L174">                    allArgs.add(ByteString.copyFrom(arg));</span>
+<span class="nc" id="L175">                }</span>
+            }
+
+        }
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">        if (IS_DEBUG_LEVEL) {</span>
+
+<span class="nc" id="L181">            StringBuilder logout = new StringBuilder(1000);</span>
+
+<span class="nc" id="L183">            logout.append(format(&quot;ChaincodeInvocationSpec type: %s, chaincode name: %s, chaincode path: %s, chaincode version: %s&quot;,</span>
+<span class="nc" id="L184">                    langType.name(), chaincodeID.getName(), chaincodeID.getPath(), chaincodeID.getVersion()));</span>
+
+<span class="nc" id="L186">            String sep = &quot;&quot;;</span>
+<span class="nc" id="L187">            logout.append(&quot; args(&quot;);</span>
+
+<span class="nc bnc" id="L189" title="All 2 branches missed.">            for (ByteString x : allArgs) {</span>
+<span class="nc" id="L190">                logout.append(sep).append(&quot;\&quot;&quot;).append(logString(new String(x.toByteArray(), UTF_8))).append(&quot;\&quot;&quot;);</span>
+<span class="nc" id="L191">                sep = &quot;, &quot;;</span>
+
+<span class="nc" id="L193">            }</span>
+<span class="nc" id="L194">            logout.append(&quot;)&quot;);</span>
+
+<span class="nc" id="L196">            logger.debug(logout.toString());</span>
+
+        }
+
+<span class="fc" id="L200">        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(allArgs).build();</span>
+
+<span class="fc" id="L202">        ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder()</span>
+<span class="fc" id="L203">                .setType(langType)</span>
+<span class="fc" id="L204">                .setChaincodeId(chaincodeID)</span>
+<span class="fc" id="L205">                .setInput(chaincodeInput)</span>
+<span class="fc" id="L206">                .build();</span>
+
+<span class="fc" id="L208">        return ChaincodeInvocationSpec.newBuilder()</span>
+<span class="fc" id="L209">                .setChaincodeSpec(chaincodeSpec).build();</span>
+
+    }
+
+    public ProposalBuilder ccType(ChaincodeSpec.Type ccType) {
+<span class="fc" id="L214">        this.ccType = ccType;</span>
+<span class="fc" id="L215">        return this;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

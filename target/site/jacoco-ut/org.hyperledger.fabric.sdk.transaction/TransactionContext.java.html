@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionContext.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.transaction</a> &gt; <span class="el_source">TransactionContext.java</span></div><h1>TransactionContext.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk.transaction;
+
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1EncodableVector;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DERUTF8String;
+import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.Utils;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+
+/**
+ * A transaction context emits events 'submitted', 'complete', and 'error'.
+ * Each transaction context uses exactly one tcert.
+ */
+public class TransactionContext {
+<span class="fc" id="L39">    private static final Config config = Config.getConfig();</span>
+    //    private static final Log logger = LogFactory.getLog(TransactionContext.class);
+    //TODO right now the server does not care need to figure out
+<span class="fc" id="L42">    private final ByteString nonce = ByteString.copyFrom(Utils.generateNonce());</span>
+
+<span class="fc" id="L44">    private boolean verify = true;</span>
+
+    public CryptoSuite getCryptoPrimitives() {
+<span class="fc" id="L47">        return cryptoPrimitives;</span>
+    }
+
+    private final CryptoSuite cryptoPrimitives;
+    private final User user;
+    private final Channel channel;
+
+    private final String txID;
+
+    //private List&lt;String&gt; attrs;
+<span class="fc" id="L57">    private long proposalWaitTime = config.getProposalWaitTime();</span>
+    private final Identities.SerializedIdentity identity;
+
+<span class="fc" id="L60">    public TransactionContext(Channel channel, User user, CryptoSuite cryptoPrimitives) {</span>
+
+<span class="fc" id="L62">        this.user = user;</span>
+<span class="fc" id="L63">        this.channel = channel;</span>
+        //TODO clean up when public classes are interfaces.
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        this.verify = !&quot;&quot;.equals(channel.getName());  //if name is not blank not system channel and need verify.</span>
+
+        //  this.txID = transactionID;
+<span class="fc" id="L68">        this.cryptoPrimitives = cryptoPrimitives;</span>
+
+<span class="fc" id="L70">        identity = ProtoUtils.createSerializedIdentity(getUser());</span>
+
+<span class="fc" id="L72">        ByteString no = getNonce();</span>
+
+<span class="fc" id="L74">        ByteString comp = no.concat(identity.toByteString());</span>
+
+<span class="fc" id="L76">        byte[] txh = cryptoPrimitives.hash(comp.toByteArray());</span>
+
+        //    txID = Hex.encodeHexString(txh);
+<span class="fc" id="L79">        txID = new String(Utils.toHexString(txh));</span>
+
+<span class="fc" id="L81">    }</span>
+
+    public Identities.SerializedIdentity getIdentity() {
+
+<span class="nc" id="L85">        return identity;</span>
+
+    }
+
+    public long getEpoch() {
+<span class="fc" id="L90">        return 0;</span>
+    }
+
+    /**
+     * Get the user with which this transaction context is associated.
+     *
+     * @return The user
+     */
+    public User getUser() {
+<span class="fc" id="L99">        return user;</span>
+    }
+
+    /**
+     * Get the channel with which this transaction context is associated.
+     *
+     * @return The channel
+     */
+    public Channel getChannel() {
+<span class="fc" id="L108">        return this.channel;</span>
+    }
+
+    /**
+     * Get the attribute names associated with this transaction context.
+     *
+     * @return the attributes.
+     */
+    //public List&lt;String&gt; getAttrs() {
+    //    return this.attrs;
+    //}
+
+    /**
+     * Set the attributes for this transaction context.
+     *
+     * @param attrs the attributes.
+     */
+    //public void setAttrs(List&lt;String&gt; attrs) {
+    //    this.attrs = attrs;
+    //}
+
+    /**
+     * Gets the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @return the timeout for a single proposal request to endorser in milliseconds
+     */
+    public long getProposalWaitTime() {
+<span class="fc" id="L135">        return proposalWaitTime;</span>
+    }
+
+    /**
+     * Sets the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @param proposalWaitTime the timeout for a single proposal request to endorser in milliseconds
+     */
+    public void setProposalWaitTime(long proposalWaitTime) {
+<span class="nc" id="L144">        this.proposalWaitTime = proposalWaitTime;</span>
+<span class="nc" id="L145">    }</span>
+
+<span class="fc" id="L147">    Timestamp currentTimeStamp = null;</span>
+
+    public Timestamp getFabricTimestamp() {
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">        if (currentTimeStamp == null) {</span>
+
+<span class="fc" id="L152">            currentTimeStamp = ProtoUtils.getCurrentFabricTimestamp();</span>
+        }
+<span class="fc" id="L154">        return currentTimeStamp;</span>
+    }
+
+    public ByteString getNonce() {
+
+<span class="fc" id="L159">        return nonce;</span>
+
+    }
+
+    public void verify(boolean verify) {
+<span class="nc" id="L164">        this.verify = verify;</span>
+<span class="nc" id="L165">    }</span>
+
+    public boolean getVerify() {
+<span class="nc" id="L168">        return verify;</span>
+    }
+
+    /* Implementation of an example ASN .1 structure. * &lt; pre &gt; *MyStructure:: = SEQUENCE
+        { *version INTEGER DEFAULT 0, *created GeneralizedTime, *baseData OCTET STRING, *extraData[0]
+            UTF8String OPTIONAL, *commentData[1] UTF8String OPTIONAL
+        } * &lt;pre &gt; * */
+    public static class MyStructure implements ASN1Encodable {
+
+<span class="fc" id="L177">        public DERUTF8String Mspid = null;</span>
+<span class="fc" id="L178">        private DEROctetString IdBytes = null;</span>
+
+<span class="fc" id="L180">        MyStructure(String mspid, byte[] idbytes) {</span>
+<span class="fc" id="L181">            Mspid = new DERUTF8String(mspid);</span>
+<span class="fc" id="L182">            IdBytes = new DEROctetString(idbytes);</span>
+
+<span class="fc" id="L184">        }</span>
+
+        @Override
+        public ASN1Primitive toASN1Primitive() {
+
+<span class="fc" id="L189">            ASN1EncodableVector asn1EncodableVector = new ASN1EncodableVector();</span>
+<span class="fc" id="L190">            asn1EncodableVector.add(Mspid);</span>
+<span class="fc" id="L191">            asn1EncodableVector.add(IdBytes);</span>
+
+            //  ASN1Sequence asn1Sequence = ASN1Sequence.getInstance();
+<span class="fc" id="L194">            return new DERSequence(asn1EncodableVector);</span>
+        }
+    }
+
+    public String getChannelID() {
+<span class="fc" id="L199">        return getChannel().getName();</span>
+    }
+
+    public String getTxID() {
+<span class="fc" id="L203">        return txID;</span>
+    }
+
+    byte[] sign(byte[] b) throws CryptoException {
+<span class="fc" id="L207">        return cryptoPrimitives.sign(getUser().getEnrollment().getKey(), b);</span>
+    }
+
+    public ByteString signByteString(byte[] b) throws CryptoException {
+<span class="fc" id="L211">        return ByteString.copyFrom(sign(b));</span>
+    }
+
+    public ByteString signByteStrings(ByteString... bs) throws CryptoException {
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        if (bs == null) {</span>
+<span class="fc" id="L216">            return null;</span>
+        }
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (bs.length == 0) {</span>
+<span class="fc" id="L219">            return null;</span>
+        }
+<span class="pc bpc" id="L221" title="2 of 4 branches missed.">        if (bs.length == 1 &amp;&amp; bs[0] == null) {</span>
+<span class="fc" id="L222">            return null;</span>
+        }
+
+<span class="nc" id="L225">        ByteString f = bs[0];</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        for (int i = 1; i &lt; bs.length; ++i) {</span>
+<span class="nc" id="L227">            f = f.concat(bs[i]);</span>
+
+        }
+<span class="nc" id="L230">        return ByteString.copyFrom(sign(f.toByteArray()));</span>
+    }
+
+    public ByteString[] signByteStrings(User[] users, ByteString... bs) throws CryptoException {
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (bs == null) {</span>
+<span class="fc" id="L235">            return null;</span>
+        }
+<span class="fc bfc" id="L237" title="All 2 branches covered.">        if (bs.length == 0) {</span>
+<span class="fc" id="L238">            return null;</span>
+        }
+<span class="pc bpc" id="L240" title="2 of 4 branches missed.">        if (bs.length == 1 &amp;&amp; bs[0] == null) {</span>
+<span class="fc" id="L241">            return null;</span>
+        }
+
+<span class="nc" id="L244">        ByteString f = bs[0];</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        for (int i = 1; i &lt; bs.length; ++i) {</span>
+<span class="nc" id="L246">            f = f.concat(bs[i]);</span>
+        }
+
+<span class="nc" id="L249">        final byte[] signbytes = f.toByteArray();</span>
+
+<span class="nc" id="L251">        ByteString[] ret = new ByteString[users.length];</span>
+
+<span class="nc" id="L253">        int i = -1;</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        for (User user : users) {</span>
+<span class="nc" id="L255">            ret[++i] = ByteString.copyFrom(cryptoPrimitives.sign(user.getEnrollment().getKey(), signbytes));</span>
+        }
+<span class="nc" id="L257">        return ret;</span>
+    }
+
+}  // end TransactionContext
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

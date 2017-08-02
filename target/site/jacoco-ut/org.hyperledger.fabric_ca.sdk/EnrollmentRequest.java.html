@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnrollmentRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric_ca.sdk</a> &gt; <span class="el_source">EnrollmentRequest.java</span></div><h1>EnrollmentRequest.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric_ca.sdk;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.security.KeyPair;
+import java.util.ArrayList;
+import java.util.Collection;
+
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonWriter;
+
+/**
+ * An enrollment request is information required to enroll the user with member service.
+ */
+public class EnrollmentRequest {
+
+    // A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10
+    private String csr;
+    // Comma-separated list of host names to associate with the certificate
+    private Collection&lt;String&gt; hosts;
+    // Name of the signing profile to use when issuing the certificate
+    private String profile;
+    // Label used in HSM operations
+    private String label;
+    // Key pair for generating certification request
+    private KeyPair keypair;
+    // The Certificate Authority's name
+    private String caName;
+
+    /**
+     * The certificate signing request if it's not supplied it will be generated.
+     *
+     * @param csr
+     */
+
+    public void setCsr(String csr) {
+<span class="fc" id="L54">        this.csr = csr;</span>
+<span class="fc" id="L55">    }</span>
+
+    // Constructor
+<span class="fc" id="L58">    public EnrollmentRequest() {</span>
+<span class="fc" id="L59">        this.csr = null;</span>
+<span class="fc" id="L60">        this.hosts = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L61">        this.profile = null;</span>
+<span class="fc" id="L62">        this.label = null;</span>
+<span class="fc" id="L63">        this.keypair = null;</span>
+<span class="fc" id="L64">    }</span>
+
+    String getCsr() {
+<span class="fc" id="L67">        return csr;</span>
+    }
+
+    /**
+     * EnrollmentRequest All the fields are optional
+     *
+     * @param profile
+     * @param label
+     * @param keypair Keypair used to sign or create the certificate if needed.
+     */
+<span class="fc" id="L77">    public EnrollmentRequest(String profile, String label, KeyPair keypair) {</span>
+<span class="fc" id="L78">        this.csr = null;</span>
+<span class="fc" id="L79">        this.hosts = new ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L80">        this.profile = profile;</span>
+<span class="fc" id="L81">        this.label = label;</span>
+<span class="fc" id="L82">        this.keypair = keypair;</span>
+<span class="fc" id="L83">    }</span>
+
+    KeyPair getKeyPair() {
+<span class="fc" id="L86">        return keypair;</span>
+    }
+
+    /**
+     * The keypair used to create the certificate request if it's not supplied.
+     * @param keypair
+     */
+
+    /**
+     * The Key pair to create the signing certificate if not supplied it will be generated.
+     *
+     * @param keypair
+     */
+    public void setKeyPair(KeyPair keypair) {
+<span class="fc" id="L100">        this.keypair = keypair;</span>
+<span class="fc" id="L101">    }</span>
+
+    void setCSR(String csr) {
+<span class="fc" id="L104">        this.csr = csr;</span>
+<span class="fc" id="L105">    }</span>
+
+    void setCAName(String caName) {
+<span class="fc" id="L108">        this.caName = caName;</span>
+<span class="fc" id="L109">    }</span>
+
+    public String getProfile() {
+<span class="fc" id="L112">        return profile;</span>
+    }
+
+    public void setProfile(String profile) {
+<span class="fc" id="L116">        this.profile = profile;</span>
+<span class="fc" id="L117">    }</span>
+
+    public String getLabel() {
+<span class="fc" id="L120">        return label;</span>
+    }
+
+    public void setLabel(String label) {
+<span class="fc" id="L124">        this.label = label;</span>
+<span class="fc" id="L125">    }</span>
+
+    public Collection&lt;String&gt; getHosts() {
+<span class="fc" id="L128">        return hosts;</span>
+    }
+
+    public void addHost(String host) {
+<span class="fc" id="L132">        this.hosts.add(host);</span>
+<span class="fc" id="L133">    }</span>
+
+    // Convert the enrollment request to a JSON string
+    String toJson() {
+<span class="fc" id="L137">        StringWriter stringWriter = new StringWriter();</span>
+<span class="fc" id="L138">        JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));</span>
+<span class="fc" id="L139">        jsonWriter.writeObject(this.toJsonObject());</span>
+<span class="fc" id="L140">        jsonWriter.close();</span>
+<span class="fc" id="L141">        return stringWriter.toString();</span>
+    }
+
+    // Convert the enrollment request to a JSON object
+    private JsonObject toJsonObject() {
+<span class="fc" id="L146">        JsonObjectBuilder factory = Json.createObjectBuilder();</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        if (profile != null) {</span>
+<span class="fc" id="L148">            factory.add(&quot;profile&quot;, profile);</span>
+        }
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (!hosts.isEmpty()) {</span>
+<span class="fc" id="L151">            JsonArrayBuilder ab = Json.createArrayBuilder();</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">            for (String host : hosts) {</span>
+<span class="fc" id="L153">                ab.add(host);</span>
+<span class="fc" id="L154">            }</span>
+<span class="fc" id="L155">            factory.add(&quot;hosts&quot;, ab.build());</span>
+        }
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        if (label != null) {</span>
+<span class="fc" id="L158">            factory.add(&quot;label&quot;, label);</span>
+        }
+
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (caName != null) {</span>
+<span class="fc" id="L162">            factory.add(HFCAClient.FABRIC_CA_REQPROP, caName);</span>
+        }
+<span class="fc" id="L164">        factory.add(&quot;certificate_request&quot;, csr);</span>
+<span class="fc" id="L165">        return factory.build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

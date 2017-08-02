@@ -1,0 +1,812 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CryptoPrimitives.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk.security</a> &gt; <span class="el_source">CryptoPrimitives.java</span></div><h1>CryptoPrimitives.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk.security;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.cert.CertPath;
+import java.security.cert.CertPathValidator;
+import java.security.cert.CertPathValidatorException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXParameters;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPrivateKey;
+import java.security.spec.ECGenParameterSpec;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Properties;
+
+import javax.security.auth.x500.X500Principal;
+import javax.xml.bind.DatatypeConverter;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.DERSequenceGenerator;
+import org.bouncycastle.asn1.nist.NISTNamedCurves;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA3Digest;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
+import org.bouncycastle.crypto.signers.ECDSASigner;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.Utils;
+
+public class CryptoPrimitives implements CryptoSuite {
+<span class="fc" id="L84">    private final Config config = Config.getConfig();</span>
+
+    private String curveName;
+    private CertificateFactory cf;
+<span class="fc" id="L88">    private final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;</span>
+<span class="fc" id="L89">    private String hashAlgorithm = config.getHashAlgorithm();</span>
+<span class="fc" id="L90">    private int securityLevel = config.getSecurityLevel();</span>
+<span class="fc" id="L91">    private String CERTIFICATE_FORMAT = config.getCertificateFormat();</span>
+<span class="fc" id="L92">    private String DEFAULT_SIGNATURE_ALGORITHM = config.getSignatureAlgorithm();</span>
+
+    // Following configuration settings are hardcoded as they don't deal with any interactions with Fabric MSP and BCCSP components
+    // If you wish to make these customizable, follow the logic from setProperties();
+    //TODO May need this for TCERTS ?
+//    private String ASYMMETRIC_KEY_TYPE = &quot;EC&quot;;
+//    private String KEY_AGREEMENT_ALGORITHM = &quot;ECDH&quot;;
+//    private String SYMMETRIC_KEY_TYPE = &quot;AES&quot;;
+//    private int SYMMETRIC_KEY_BYTE_COUNT = 32;
+//    private String SYMMETRIC_ALGORITHM = &quot;AES/CFB/NoPadding&quot;;
+//    private int MAC_KEY_BYTE_COUNT = 32;
+
+<span class="fc" id="L104">    private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);</span>
+
+<span class="fc" id="L106">    public CryptoPrimitives() {</span>
+<span class="fc" id="L107">        Security.addProvider(new BouncyCastleProvider());</span>
+<span class="fc" id="L108">    }</span>
+
+//    /**
+//     * sets the signature algorithm used for signing/verifying.
+//     *
+//     * @param sigAlg the name of the signature algorithm. See the list of valid names in the JCA Standard Algorithm Name documentation
+//     */
+//    public void setSignatureAlgorithm(String sigAlg) {
+//        this.DEFAULT_SIGNATURE_ALGORITHM = sigAlg;
+//    }
+
+//    /**
+//     * returns the signature algorithm used by this instance of CryptoPrimitives.
+//     * Note that fabric and fabric-ca have not yet standardized on which algorithms are supported.
+//     * While that plays out, CryptoPrimitives will try the algorithm specified in the certificate and
+//     * the default SHA256withECDSA that's currently hardcoded for fabric and fabric-ca
+//     *
+//     * @return the name of the signature algorithm
+//     */
+//    public String getSignatureAlgorithm() {
+//        return this.DEFAULT_SIGNATURE_ALGORITHM;
+//    }
+
+    public Certificate bytesToCertificate(byte[] certBytes) throws CryptoException {
+<span class="pc bpc" id="L132" title="1 of 4 branches missed.">        if (certBytes == null || certBytes.length == 0) {</span>
+<span class="fc" id="L133">            throw new CryptoException(&quot;bytesToCertificate: input null or zero length&quot;);</span>
+        }
+
+        X509Certificate certificate;
+        try {
+<span class="fc" id="L138">            BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certBytes));</span>
+<span class="fc" id="L139">            CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L140">            certificate = (X509Certificate) certFactory.generateCertificate(pem);</span>
+<span class="fc" id="L141">        } catch (CertificateException e) {</span>
+<span class="fc" id="L142">            String emsg = &quot;Unable to converts byte array to certificate. error : &quot; + e.getMessage();</span>
+<span class="fc" id="L143">            logger.error(emsg);</span>
+<span class="fc" id="L144">            logger.debug(&quot;input bytes array :&quot; + new String(certBytes));</span>
+<span class="fc" id="L145">            throw new CryptoException(emsg, e);</span>
+<span class="fc" id="L146">        }</span>
+
+<span class="fc" id="L148">        return certificate;</span>
+    }
+
+    /**
+     * @inheritDoc
+     */
+
+    @Override
+    public boolean verify(byte[] pemCertificate, String signatureAlgorithm, byte[] signature, byte[] plainText) throws CryptoException {
+        boolean isVerified;
+
+<span class="pc bpc" id="L159" title="2 of 6 branches missed.">        if (plainText == null || signature == null || pemCertificate == null) {</span>
+<span class="fc" id="L160">            return false;</span>
+        }
+
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">        if (config.extraLogLevel(10)) {</span>
+
+<span class="nc" id="L165">            logger.trace(&quot;plaintext in hex: &quot; + DatatypeConverter.printHexBinary(plainText));</span>
+<span class="nc" id="L166">            logger.trace(&quot;signature in hex: &quot; + DatatypeConverter.printHexBinary(signature));</span>
+<span class="nc" id="L167">            logger.trace(&quot;PEM cert in hex: &quot; + DatatypeConverter.printHexBinary(pemCertificate));</span>
+
+        }
+
+        try {
+<span class="fc" id="L172">            BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));</span>
+<span class="fc" id="L173">            CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L174">            X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);</span>
+
+<span class="fc" id="L176">            isVerified = validateCertificate(certificate);</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">            if (isVerified) { // only proceed if cert is trusted</span>
+
+<span class="fc" id="L179">                Signature sig = Signature.getInstance(signatureAlgorithm);</span>
+<span class="fc" id="L180">                sig.initVerify(certificate);</span>
+<span class="fc" id="L181">                sig.update(plainText);</span>
+<span class="fc" id="L182">                isVerified = sig.verify(signature);</span>
+            }
+<span class="fc" id="L184">        } catch (InvalidKeyException | CertificateException e) {</span>
+<span class="fc" id="L185">            CryptoException ex = new CryptoException(&quot;Cannot verify signature. Error is: &quot;</span>
+<span class="fc" id="L186">                    + e.getMessage() + &quot;\r\nCertificate: &quot;</span>
+<span class="fc" id="L187">                    + DatatypeConverter.printHexBinary(pemCertificate), e);</span>
+<span class="fc" id="L188">            logger.error(ex.getMessage(), ex);</span>
+<span class="fc" id="L189">            throw ex;</span>
+<span class="fc" id="L190">        } catch (NoSuchAlgorithmException | SignatureException e) {</span>
+<span class="fc" id="L191">            CryptoException ex = new CryptoException(&quot;Cannot verify. Signature algorithm is invalid. Error is: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L192">            logger.error(ex.getMessage(), ex);</span>
+<span class="fc" id="L193">            throw ex;</span>
+<span class="fc" id="L194">        }</span>
+
+<span class="fc" id="L196">        return isVerified;</span>
+    } // verify
+
+<span class="fc" id="L199">    private KeyStore trustStore = null;</span>
+
+    private void createTrustStore() throws CryptoException {
+        try {
+<span class="fc" id="L203">            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());</span>
+<span class="fc" id="L204">            keyStore.load(null, null);</span>
+<span class="fc" id="L205">            setTrustStore(keyStore);</span>
+<span class="nc" id="L206">        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException | InvalidArgumentException e) {</span>
+<span class="nc" id="L207">            throw new CryptoException(&quot;Cannot create trust store. Error: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L208">        }</span>
+<span class="fc" id="L209">    }</span>
+
+    /**
+     * setTrustStore uses the given KeyStore object as the container for trusted
+     * certificates
+     *
+     * @param keyStore the KeyStore which will be used to hold trusted certificates
+     * @throws InvalidArgumentException
+     */
+    void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
+
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (keyStore == null) {</span>
+<span class="fc" id="L221">            throw new InvalidArgumentException(&quot;Need to specify a java.security.KeyStore input parameter&quot;);</span>
+        }
+
+<span class="fc" id="L224">        trustStore = keyStore;</span>
+<span class="fc" id="L225">    }</span>
+
+    /**
+     * getTrustStore returns the KeyStore object where we keep trusted certificates.
+     * If no trust store has been set, this method will create one.
+     *
+     * @return the trust store as a java.security.KeyStore object
+     * @throws CryptoException
+     * @see KeyStore
+     */
+    public KeyStore getTrustStore() throws CryptoException {
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (trustStore == null) {</span>
+<span class="fc" id="L237">            createTrustStore();</span>
+        }
+<span class="fc" id="L239">        return trustStore;</span>
+    }
+
+    /**
+     * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     *
+     * @param caCertPem an X.509 certificate in PEM format
+     * @param alias     an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @throws CryptoException
+     * @throws InvalidArgumentException
+     */
+    public void addCACertificateToTrustStore(File caCertPem, String alias) throws CryptoException, InvalidArgumentException {
+
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        if (caCertPem == null) {</span>
+<span class="fc" id="L253">            throw new InvalidArgumentException(&quot;The certificate cannot be null&quot;);</span>
+        }
+
+<span class="fc bfc" id="L256" title="All 4 branches covered.">        if (alias == null || alias.isEmpty()) {</span>
+<span class="fc" id="L257">            throw new InvalidArgumentException(&quot;You must assign an alias to a certificate when adding to the trust store&quot;);</span>
+        }
+
+
+        BufferedInputStream bis;
+        try {
+
+<span class="fc" id="L264">            bis = new BufferedInputStream(new ByteArrayInputStream(FileUtils.readFileToByteArray(caCertPem)));</span>
+<span class="fc" id="L265">            Certificate caCert = cf.generateCertificate(bis);</span>
+<span class="fc" id="L266">            this.addCACertificateToTrustStore(caCert, alias);</span>
+<span class="fc" id="L267">        } catch (CertificateException | IOException e) {</span>
+<span class="fc" id="L268">            throw new CryptoException(&quot;Unable to add CA certificate to trust store. Error: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L269">        }</span>
+<span class="fc" id="L270">    }</span>
+
+    /**
+     * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     *
+     * @param caCert an X.509 certificate
+     * @param alias  an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @throws CryptoException
+     * @throws InvalidArgumentException
+     */
+    void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
+
+<span class="fc bfc" id="L282" title="All 4 branches covered.">        if (alias == null || alias.isEmpty()) {</span>
+<span class="fc" id="L283">            throw new InvalidArgumentException(&quot;You must assign an alias to a certificate when adding to the trust store.&quot;);</span>
+        }
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        if (caCert == null) {</span>
+<span class="fc" id="L286">            throw new InvalidArgumentException(&quot;Certificate cannot be null.&quot;);</span>
+        }
+
+        try {
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">            if (config.extraLogLevel(10)) {</span>
+<span class="nc" id="L291">                logger.trace(&quot;Adding cert to trust store. alias:  &quot; + alias + &quot;cert: &quot; + caCert.toString());</span>
+            }
+<span class="fc" id="L293">            getTrustStore().setCertificateEntry(alias, caCert);</span>
+<span class="fc" id="L294">        } catch (KeyStoreException e) {</span>
+<span class="fc" id="L295">            String emsg = &quot;Unable to add CA certificate to trust store. Error: &quot; + e.getMessage();</span>
+<span class="fc" id="L296">            logger.error(emsg, e);</span>
+<span class="fc" id="L297">            throw new CryptoException(emsg, e);</span>
+<span class="fc" id="L298">        }</span>
+<span class="fc" id="L299">    }</span>
+
+    @Override
+    public void loadCACertificates(Collection&lt;Certificate&gt; certificates) throws CryptoException {
+<span class="pc bpc" id="L303" title="1 of 4 branches missed.">        if (certificates == null || certificates.size() == 0) {</span>
+<span class="fc" id="L304">            throw new CryptoException(&quot;Unable to load CA certificates. List is empty&quot;);</span>
+        }
+
+        try {
+<span class="fc bfc" id="L308" title="All 2 branches covered.">            for (Certificate cert : certificates) {</span>
+<span class="fc" id="L309">                addCACertificateToTrustStore(cert, Integer.toString(cert.hashCode()));</span>
+<span class="fc" id="L310">            }</span>
+<span class="nc" id="L311">        } catch (InvalidArgumentException e) {</span>
+            // Note: This can currently never happen (as cert&lt;&gt;null and alias&lt;&gt;null)
+<span class="nc" id="L313">            throw new CryptoException(&quot;Unable to add certificate to trust store. Error: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L314">        }</span>
+<span class="fc" id="L315">    }</span>
+
+    /* (non-Javadoc)
+     * @see org.hyperledger.fabric.sdk.security.CryptoSuite#loadCACertificatesAsBytes(java.util.Collection)
+     */
+    @Override
+    public void loadCACertificatesAsBytes(Collection&lt;byte[]&gt; certificatesBytes) throws CryptoException {
+<span class="pc bpc" id="L322" title="1 of 4 branches missed.">        if (certificatesBytes == null || certificatesBytes.size() == 0) {</span>
+<span class="fc" id="L323">            throw new CryptoException(&quot;List of CA certificates is empty. Nothing to load.&quot;);</span>
+        }
+<span class="fc" id="L325">        ArrayList&lt;Certificate&gt; certList = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L326" title="All 2 branches covered.">        for (byte[] certBytes : certificatesBytes) {</span>
+<span class="fc" id="L327">            logger.trace(&quot;certificate to load:\n&quot; + new String(certBytes));</span>
+<span class="fc" id="L328">            certList.add(bytesToCertificate(certBytes));</span>
+<span class="fc" id="L329">        }</span>
+<span class="fc" id="L330">        loadCACertificates(certList);</span>
+<span class="fc" id="L331">    }</span>
+
+    /**
+     * validateCertificate checks whether the given certificate is trusted. It
+     * checks if the certificate is signed by one of the trusted certs in the
+     * trust store.
+     *
+     * @param certPEM the certificate in PEM format
+     * @return true if the certificate is trusted
+     */
+    boolean validateCertificate(byte[] certPEM) {
+
+<span class="fc bfc" id="L343" title="All 2 branches covered.">        if (certPEM == null) {</span>
+<span class="fc" id="L344">            return false;</span>
+        }
+
+        try {
+<span class="fc" id="L348">            BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certPEM));</span>
+<span class="fc" id="L349">            CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L350">            X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);</span>
+<span class="fc" id="L351">            return validateCertificate(certificate);</span>
+<span class="fc" id="L352">        } catch (CertificateException e) {</span>
+<span class="fc" id="L353">            logger.error(&quot;Cannot validate certificate. Error is: &quot; + e.getMessage() + &quot;\r\nCertificate (PEM, hex): &quot;</span>
+<span class="fc" id="L354">                    + DatatypeConverter.printHexBinary(certPEM));</span>
+<span class="fc" id="L355">            return false;</span>
+        }
+    }
+
+    boolean validateCertificate(Certificate cert) {
+        boolean isValidated;
+
+<span class="fc bfc" id="L362" title="All 2 branches covered.">        if (cert == null) {</span>
+<span class="fc" id="L363">            return false;</span>
+        }
+
+        try {
+<span class="fc" id="L367">            KeyStore keyStore = getTrustStore();</span>
+
+<span class="fc" id="L369">            PKIXParameters parms = new PKIXParameters(keyStore);</span>
+<span class="fc" id="L370">            parms.setRevocationEnabled(false);</span>
+
+<span class="fc" id="L372">            CertPathValidator certValidator = CertPathValidator.getInstance(CertPathValidator.getDefaultType()); // PKIX</span>
+
+<span class="fc" id="L374">            ArrayList&lt;Certificate&gt; start = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L375">            start.add(cert);</span>
+<span class="fc" id="L376">            CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L377">            CertPath certPath = certFactory.generateCertPath(start);</span>
+
+<span class="fc" id="L379">            certValidator.validate(certPath, parms);</span>
+<span class="fc" id="L380">            isValidated = true;</span>
+<span class="fc" id="L381">        } catch (KeyStoreException | InvalidAlgorithmParameterException | NoSuchAlgorithmException</span>
+                | CertificateException | CertPathValidatorException | CryptoException e) {
+<span class="fc" id="L383">            logger.error(&quot;Cannot validate certificate. Error is: &quot; + e.getMessage() + &quot;\r\nCertificate&quot;</span>
+<span class="fc" id="L384">                    + cert.toString());</span>
+<span class="fc" id="L385">            isValidated = false;</span>
+<span class="fc" id="L386">        }</span>
+
+<span class="fc" id="L388">        return isValidated;</span>
+    } // validateCertificate
+
+    /**
+     * Security Level determines the elliptic curve used in key generation
+     *
+     * @param securityLevel currently 256 or 384
+     * @throws InvalidArgumentException
+     */
+    void setSecurityLevel(int securityLevel) throws InvalidArgumentException {
+<span class="fc bfc" id="L398" title="All 4 branches covered.">        if (securityLevel != 256 &amp;&amp; securityLevel != 384) {</span>
+<span class="fc" id="L399">            throw new InvalidArgumentException(&quot;Illegal level: &quot; + securityLevel + &quot; must be either 256 or 384&quot;);</span>
+        }
+
+        // TODO need to get set of supported curves from #fabric-crypto team
+<span class="fc bfc" id="L403" title="All 2 branches covered.">        if (this.securityLevel == 256) {</span>
+<span class="fc" id="L404">            this.curveName = &quot;P-256&quot;;</span>
+<span class="pc bpc" id="L405" title="1 of 2 branches missed.">        } else if (this.securityLevel == 384) {</span>
+<span class="fc" id="L406">            this.curveName = &quot;secp384r1&quot;;</span>
+        }
+<span class="fc" id="L408">    }</span>
+
+    void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
+<span class="fc bfc" id="L411" title="All 2 branches covered.">        if (Utils.isNullOrEmpty(algorithm)</span>
+<span class="fc bfc" id="L412" title="All 4 branches covered.">                || !(algorithm.equalsIgnoreCase(&quot;SHA2&quot;) || algorithm.equalsIgnoreCase(&quot;SHA3&quot;))) {</span>
+<span class="fc" id="L413">            throw new InvalidArgumentException(&quot;Illegal Hash function family: &quot;</span>
+                    + this.hashAlgorithm + &quot; - must be either SHA2 or SHA3&quot;);
+        }
+
+<span class="fc" id="L417">        this.hashAlgorithm = algorithm;</span>
+<span class="fc" id="L418">    }</span>
+
+    @Override
+    public KeyPair keyGen() throws CryptoException {
+<span class="fc" id="L422">        return ecdsaKeyGen();</span>
+    }
+
+    private KeyPair ecdsaKeyGen() throws CryptoException {
+<span class="fc" id="L426">        return generateKey(&quot;ECDSA&quot;, this.curveName);</span>
+    }
+
+    private KeyPair generateKey(String encryptionName, String curveName) throws CryptoException {
+        try {
+<span class="fc" id="L431">            ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(curveName);</span>
+<span class="fc" id="L432">            KeyPairGenerator g = KeyPairGenerator.getInstance(encryptionName, SECURITY_PROVIDER);</span>
+<span class="fc" id="L433">            g.initialize(ecGenSpec, new SecureRandom());</span>
+<span class="fc" id="L434">            return g.generateKeyPair();</span>
+<span class="fc" id="L435">        } catch (Exception exp) {</span>
+<span class="fc" id="L436">            throw new CryptoException(&quot;Unable to generate key pair&quot;, exp);</span>
+        }
+    }
+
+//    public String encodePublicKey(PublicKey pk) {
+//        return Hex.toHexString(pk.getEncoded());
+//    }
+//
+//    public PublicKey decodePublicKey(String data) throws CryptoException {
+//        try {
+//            logger.debug(&quot;input encoded public key: &quot; + data);
+//            KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
+//            X509EncodedKeySpec pubX509 = new X509EncodedKeySpec(Hex.decode(data));
+//            return asymmetricKeyFactory.generatePublic(pubX509);
+//        } catch (Exception e) {
+//            String emsg = &quot;Failed to decode public key: &quot; + data + &quot;. error : &quot; + e.getMessage();
+//            logger.error(emsg);
+//            throw new CryptoException(emsg, e);
+//        }
+//    }
+
+//    public byte[] eciesDecrypt(KeyPair keyPair, byte[] data) throws CryptoException {
+//        try {
+//            int ephemeralKeyLength = (int) (Math.floor((this.securityLevel + 7) / 8) * 2 + 1);
+//            int mkLen = this.securityLevel &gt;&gt; 3;
+//            int encryptedMessageLength = data.length - ephemeralKeyLength - mkLen;
+//
+//            byte[] ephemeralPublicKeyBytes = Arrays.copyOfRange(data, 0, ephemeralKeyLength);
+//            byte[] encryptedMessage = Arrays.copyOfRange(data, ephemeralKeyLength, ephemeralKeyLength + encryptedMessageLength);
+//            byte[] tag = Arrays.copyOfRange(data, ephemeralKeyLength + encryptedMessageLength, data.length);
+//
+//            // Parsing public key.
+//            ECParameterSpec asymmetricKeyParams = generateECParameterSpec();
+//            KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
+//
+//            PublicKey ephemeralPublicKey = asymmetricKeyFactory.generatePublic(new ECPublicKeySpec(
+//                    asymmetricKeyParams.getCurve().decodePoint(ephemeralPublicKeyBytes), asymmetricKeyParams));
+//
+//            // Deriving shared secret.
+//            KeyAgreement keyAgreement = KeyAgreement.getInstance(KEY_AGREEMENT_ALGORITHM, SECURITY_PROVIDER);
+//            keyAgreement.init(keyPair.getPrivate());
+//            keyAgreement.doPhase(ephemeralPublicKey, true);
+//            byte[] sharedSecret = keyAgreement.generateSecret();
+//
+//            // Deriving encryption and mac keys.
+//            HKDFBytesGenerator hkdfBytesGenerator = new HKDFBytesGenerator(getHashDigest());
+//
+//            hkdfBytesGenerator.init(new HKDFParameters(sharedSecret, null, null));
+//            byte[] encryptionKey = new byte[SYMMETRIC_KEY_BYTE_COUNT];
+//            hkdfBytesGenerator.generateBytes(encryptionKey, 0, SYMMETRIC_KEY_BYTE_COUNT);
+//
+//            byte[] macKey = new byte[MAC_KEY_BYTE_COUNT];
+//            hkdfBytesGenerator.generateBytes(macKey, 0, MAC_KEY_BYTE_COUNT);
+//
+//            // Verifying Message Authentication Code (aka mac/tag)
+//            byte[] expectedTag = calculateMac(macKey, encryptedMessage);
+//            if (!Arrays.areEqual(tag, expectedTag)) {
+//                throw new RuntimeException(&quot;Bad Message Authentication Code!&quot;);
+//            }
+//
+//            // Decrypting the message.
+//            byte[] iv = Arrays.copyOfRange(encryptedMessage, 0, 16);
+//            byte[] encrypted = Arrays.copyOfRange(encryptedMessage, 16, encryptedMessage.length);
+//            byte[] output = aesDecrypt(encryptionKey, iv, encrypted);
+//
+//            return output;
+//
+//        } catch (Exception e) {
+//            throw new CryptoException(&quot;Could not decrypt the message&quot;, e);
+//        }
+//
+//    }
+
+//    private byte[] calculateMac(byte[] macKey, byte[] encryptedMessage)
+//            throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+//        HMac hmac = new HMac(getHashDigest());
+//        hmac.init(new KeyParameter(macKey));
+//        hmac.update(encryptedMessage, 0, encryptedMessage.length);
+//        byte[] out = new byte[MAC_KEY_BYTE_COUNT];
+//        hmac.doFinal(out, 0);
+//        return out;
+//    }
+//
+//    private byte[] aesDecrypt(byte[] encryptionKey, byte[] iv, byte[] encryptedMessage)
+//            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+//            InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+//
+//        Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM);
+//        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(encryptionKey, SYMMETRIC_KEY_TYPE), new IvParameterSpec(iv));
+//        return cipher.doFinal(encryptedMessage);
+//
+//    }
+//
+//    private ECNamedCurveParameterSpec generateECParameterSpec() {
+//        ECNamedCurveParameterSpec bcParams = ECNamedCurveTable.getParameterSpec(this.curveName);
+//        return bcParams;
+//    }
+//
+//    public byte[][] ecdsaSign(PrivateKey privateKey, byte[] data) throws CryptoException {
+//        try {
+//            byte[] encoded = hash(data);
+//            X9ECParameters params = SECNamedCurves.getByName(this.curveName);
+//            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
+//                    params.getH());
+//
+//            ECDSASigner signer = new ECDSASigner(new HMacDSAKCalculator(new SHA512Digest()));
+//            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
+//            signer.init(true, privKey);
+//            BigInteger[] sigs = signer.generateSignature(encoded);
+//            return new byte[][] {sigs[0].toString().getBytes(UTF_8), sigs[1].toString().getBytes(UTF_8)};
+//        } catch (Exception e) {
+//            throw new CryptoException(&quot;Could not sign the message using private key&quot;, e);
+//        }
+//
+//    }
+
+    /**
+     * Sign data with the specified elliptic curve private key.
+     *
+     * @param privateKey elliptic curve private key.
+     * @param data       data to sign
+     * @return the signed data.
+     * @throws CryptoException
+     */
+    private byte[] ecdsaSignToBytes(ECPrivateKey privateKey, byte[] data) throws CryptoException {
+        try {
+<span class="fc" id="L562">            final byte[] encoded = hash(data);</span>
+
+            // char[] hexenncoded = Hex.encodeHex(encoded);
+            // encoded = new String(hexenncoded).getBytes();
+
+<span class="fc" id="L567">            X9ECParameters params = NISTNamedCurves.getByName(this.curveName);</span>
+<span class="fc" id="L568">            BigInteger curveN = params.getN();</span>
+
+<span class="fc" id="L570">            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curveN,</span>
+<span class="fc" id="L571">                    params.getH());</span>
+
+<span class="fc" id="L573">            ECDSASigner signer = new ECDSASigner();</span>
+
+<span class="fc" id="L575">            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(privateKey.getS(), ecParams);</span>
+<span class="fc" id="L576">            signer.init(true, privKey);</span>
+<span class="fc" id="L577">            BigInteger[] sigs = signer.generateSignature(encoded);</span>
+
+<span class="fc" id="L579">            sigs = preventMalleability(sigs, curveN);</span>
+
+<span class="fc" id="L581">            ByteArrayOutputStream s = new ByteArrayOutputStream();</span>
+
+<span class="fc" id="L583">            DERSequenceGenerator seq = new DERSequenceGenerator(s);</span>
+<span class="fc" id="L584">            seq.addObject(new ASN1Integer(sigs[0]));</span>
+<span class="fc" id="L585">            seq.addObject(new ASN1Integer(sigs[1]));</span>
+<span class="fc" id="L586">            seq.close();</span>
+<span class="fc" id="L587">            return s.toByteArray();</span>
+
+<span class="fc" id="L589">        } catch (Exception e) {</span>
+<span class="fc" id="L590">            throw new CryptoException(&quot;Could not sign the message using private key&quot;, e);</span>
+        }
+
+    }
+
+    /**
+     * @throws ClassCastException if the supplied private key is not of type {@link ECPrivateKey}.
+     */
+    @Override
+    public byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
+<span class="fc" id="L600">        return ecdsaSignToBytes((ECPrivateKey) key, data);</span>
+    }
+    /*
+     *  code for signing using JCA/JSSE methods only .  Still needed ?
+    public byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
+        byte[] signature;
+
+        if (key == null || data == null)
+            throw new CryptoException(&quot;Could not sign. Key or plain text is null&quot;, new NullPointerException());
+
+        try {
+            Signature sig = Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM);
+            sig.initSign(key);
+            sig.update(data);
+            signature = sig.sign();
+
+            // TODO see if BouncyCastle handles sig malleability already under
+            // the covers
+
+            return signature;
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            throw new CryptoException(&quot;Could not sign the message.&quot;, e);
+        }
+
+    }
+    */
+
+    private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curveN) {
+<span class="fc" id="L628">        BigInteger cmpVal = curveN.divide(BigInteger.valueOf(2L));</span>
+
+<span class="fc" id="L630">        BigInteger sval = sigs[1];</span>
+
+<span class="fc bfc" id="L632" title="All 2 branches covered.">        if (sval.compareTo(cmpVal) == 1) {</span>
+
+<span class="fc" id="L634">            sigs[1] = curveN.subtract(sval);</span>
+        }
+
+<span class="fc" id="L637">        return sigs;</span>
+    }
+
+    /**
+     * generateCertificationRequest
+     *
+     * @param subject The subject to be added to the certificate
+     * @param pair    Public private key pair
+     * @return PKCS10CertificationRequest Certificate Signing Request.
+     * @throws OperatorCreationException
+     */
+
+    public PKCS10CertificationRequest generateCertificationRequest(String subject, KeyPair pair)
+            throws OperatorCreationException {
+
+<span class="fc" id="L652">        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(</span>
+<span class="fc" id="L653">                new X500Principal(&quot;CN=&quot; + subject), pair.getPublic());</span>
+
+<span class="fc" id="L655">        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(&quot;SHA256withECDSA&quot;);</span>
+
+        // csBuilder.setProvider(&quot;EC&quot;);
+<span class="fc" id="L658">        ContentSigner signer = csBuilder.build(pair.getPrivate());</span>
+
+<span class="fc" id="L660">        return p10Builder.build(signer);</span>
+    }
+
+    /**
+     * certificationRequestToPEM - Convert a PKCS10CertificationRequest to PEM
+     * format.
+     *
+     * @param csr The Certificate to convert
+     * @return An equivalent PEM format certificate.
+     * @throws IOException
+     */
+
+    public String certificationRequestToPEM(PKCS10CertificationRequest csr) throws IOException {
+<span class="fc" id="L673">        PemObject pemCSR = new PemObject(&quot;CERTIFICATE REQUEST&quot;, csr.getEncoded());</span>
+
+<span class="fc" id="L675">        StringWriter str = new StringWriter();</span>
+<span class="fc" id="L676">        JcaPEMWriter pemWriter = new JcaPEMWriter(str);</span>
+<span class="fc" id="L677">        pemWriter.writeObject(pemCSR);</span>
+<span class="fc" id="L678">        pemWriter.close();</span>
+<span class="fc" id="L679">        str.close();</span>
+<span class="fc" id="L680">        return str.toString();</span>
+    }
+
+//    public PrivateKey ecdsaKeyFromPrivate(byte[] key) throws CryptoException {
+//        try {
+//            EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(key);
+//            KeyFactory generator = KeyFactory.getInstance(&quot;ECDSA&quot;, SECURITY_PROVIDER);
+//            PrivateKey privateKey = generator.generatePrivate(privateKeySpec);
+//
+//            return privateKey;
+//        } catch (Exception exp) {
+//            throw new CryptoException(&quot;Unable to convert byte[] into PrivateKey&quot;, exp);
+//        }
+//    }
+
+    @Override
+    public byte[] hash(byte[] input) {
+<span class="fc" id="L697">        Digest digest = getHashDigest();</span>
+<span class="fc" id="L698">        byte[] retValue = new byte[digest.getDigestSize()];</span>
+<span class="fc" id="L699">        digest.update(input, 0, input.length);</span>
+<span class="fc" id="L700">        digest.doFinal(retValue, 0);</span>
+<span class="fc" id="L701">        return retValue;</span>
+    }
+
+    @Override
+    public void init() throws CryptoException, InvalidArgumentException {
+<span class="fc" id="L706">        resetConfiguration();</span>
+<span class="fc" id="L707">    }</span>
+
+    private Digest getHashDigest() {
+<span class="fc bfc" id="L710" title="All 2 branches covered.">        if (this.hashAlgorithm.equalsIgnoreCase(&quot;SHA3&quot;)) {</span>
+<span class="fc" id="L711">            return new SHA3Digest();</span>
+        } else {
+            // Default to SHA2
+<span class="fc" id="L714">            return new SHA256Digest();</span>
+        }
+    }
+
+//    /**
+//     * Shake256 hash the supplied byte data.
+//     *
+//     * @param in        byte array to be hashed.
+//     * @param bitLength of the result.
+//     * @return the hashed byte data.
+//     */
+//    public byte[] shake256(byte[] in, int bitLength) {
+//
+//        if (bitLength % 8 != 0) {
+//            throw new IllegalArgumentException(&quot;bit length not modulo 8&quot;);
+//
+//        }
+//
+//        final int byteLen = bitLength / 8;
+//
+//        SHAKEDigest sd = new SHAKEDigest(256);
+//
+//        sd.update(in, 0, in.length);
+//
+//        byte[] out = new byte[byteLen];
+//
+//        sd.doFinal(out, 0, byteLen);
+//
+//        return out;
+//
+//    }
+
+    /**
+     * Resets curve name, hash algorithm and cert factory. Call this method when a config value changes
+     *
+     * @throws CryptoException
+     * @throws InvalidArgumentException
+     */
+    private void resetConfiguration() throws CryptoException, InvalidArgumentException {
+
+<span class="fc" id="L754">        this.setSecurityLevel(this.securityLevel);</span>
+
+<span class="fc" id="L756">        this.setHashAlgorithm(this.hashAlgorithm);</span>
+
+        try {
+<span class="fc" id="L759">            cf = CertificateFactory.getInstance(CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L760">        } catch (CertificateException e) {</span>
+<span class="fc" id="L761">            CryptoException ex = new CryptoException(&quot;Cannot initialize &quot; + CERTIFICATE_FORMAT + &quot; certificate factory. Error = &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L762">            logger.error(ex.getMessage(), ex);</span>
+<span class="fc" id="L763">            throw ex;</span>
+<span class="fc" id="L764">        }</span>
+<span class="fc" id="L765">    }</span>
+
+    /* (non-Javadoc)
+     * @see org.hyperledger.fabric.sdk.security.CryptoSuite#setProperties(java.util.Properties)
+     */
+    @Override
+    public void setProperties(Properties properties) throws CryptoException, InvalidArgumentException {
+<span class="fc bfc" id="L772" title="All 2 branches covered.">        if (properties != null) {</span>
+<span class="fc" id="L773">            hashAlgorithm = Optional.ofNullable(properties.getProperty(Config.HASH_ALGORITHM)).orElse(hashAlgorithm);</span>
+<span class="fc" id="L774">            String secLevel = Optional.ofNullable(properties.getProperty(Config.SECURITY_LEVEL)).orElse(Integer.toString(securityLevel));</span>
+<span class="fc" id="L775">            securityLevel = Integer.parseInt(secLevel);</span>
+<span class="fc" id="L776">            CERTIFICATE_FORMAT = Optional.ofNullable(properties.getProperty(Config.CERTIFICATE_FORMAT)).orElse(CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L777">            DEFAULT_SIGNATURE_ALGORITHM = Optional.ofNullable(properties.getProperty(Config.SIGNATURE_ALGORITHM)).orElse(DEFAULT_SIGNATURE_ALGORITHM);</span>
+
+<span class="fc" id="L779">            resetConfiguration();</span>
+        }
+<span class="fc" id="L781">    }</span>
+
+    /* (non-Javadoc)
+     * @see org.hyperledger.fabric.sdk.security.CryptoSuite#getProperties()
+     */
+    @Override
+    public Properties getProperties() {
+<span class="fc" id="L788">        Properties properties = new Properties();</span>
+<span class="fc" id="L789">        properties.setProperty(Config.HASH_ALGORITHM, hashAlgorithm);</span>
+<span class="fc" id="L790">        properties.setProperty(Config.SECURITY_LEVEL, Integer.toString(securityLevel));</span>
+<span class="fc" id="L791">        properties.setProperty(Config.CERTIFICATE_FORMAT, CERTIFICATE_FORMAT);</span>
+<span class="fc" id="L792">        properties.setProperty(Config.SIGNATURE_ALGORITHM, DEFAULT_SIGNATURE_ALGORITHM);</span>
+<span class="fc" id="L793">        return properties;</span>
+    }
+
+    public byte[] certificateToDER(String certificatePEM) {
+
+<span class="fc" id="L798">        byte[] content = null;</span>
+
+<span class="pc" id="L800">        try (PemReader pemReader = new PemReader(new StringReader(certificatePEM))) {</span>
+<span class="fc" id="L801">            final PemObject pemObject = pemReader.readPemObject();</span>
+<span class="fc" id="L802">            content = pemObject.getContent();</span>
+
+<span class="pc bpc" id="L804" title="6 of 8 branches missed.">        } catch (IOException e) {</span>
+            // best attempt
+<span class="fc" id="L806">        }</span>
+
+<span class="fc" id="L808">        return content;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

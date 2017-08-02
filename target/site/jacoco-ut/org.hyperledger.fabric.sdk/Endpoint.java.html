@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Endpoint.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">fabric-java-sdk</a> &gt; <a href="index.source.html" class="el_package">org.hyperledger.fabric.sdk</a> &gt; <span class="el_source">Endpoint.java</span></div><h1>Endpoint.java</h1><pre class="source lang-java linenums">/*
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package org.hyperledger.fabric.sdk;
+
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLException;
+
+import com.google.common.collect.ImmutableMap;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.NegotiationType;
+import io.grpc.netty.NettyChannelBuilder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslProvider;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.hyperledger.fabric.sdk.helper.Utils;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+
+import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
+
+class Endpoint {
+<span class="fc" id="L53">    private static final Log logger = LogFactory.getLog(Endpoint.class);</span>
+
+    private final String addr;
+    private final int port;
+    private final String url;
+<span class="fc" id="L58">    private NettyChannelBuilder channelBuilder = null;</span>
+
+<span class="fc" id="L60">    private static final Map&lt;String, String&gt; CN_CACHE = Collections.synchronizedMap(new HashMap&lt;&gt;());</span>
+
+<span class="fc" id="L62">    Endpoint(String url, Properties properties) {</span>
+
+<span class="fc" id="L64">        logger.trace(String.format(&quot;Creating endpoint for url %s&quot;, url));</span>
+<span class="fc" id="L65">        this.url = url;</span>
+
+<span class="fc" id="L67">        String pem = null;</span>
+<span class="fc" id="L68">        String cn = null;</span>
+<span class="fc" id="L69">        String sslp = null;</span>
+<span class="fc" id="L70">        String nt = null;</span>
+
+<span class="fc" id="L72">        Properties purl = parseGrpcUrl(url);</span>
+<span class="fc" id="L73">        String protocol = purl.getProperty(&quot;protocol&quot;);</span>
+<span class="fc" id="L74">        this.addr = purl.getProperty(&quot;host&quot;);</span>
+<span class="fc" id="L75">        this.port = Integer.parseInt(purl.getProperty(&quot;port&quot;));</span>
+
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (properties != null) {</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">            if (&quot;grpcs&quot;.equals(protocol)) {</span>
+                try {
+<span class="fc" id="L80">                    pem = properties.getProperty(&quot;pemFile&quot;);</span>
+<span class="fc" id="L81">                    cn = properties.getProperty(&quot;hostnameOverride&quot;);</span>
+
+<span class="pc bpc" id="L83" title="3 of 4 branches missed.">                    if (cn == null &amp;&amp; &quot;true&quot;.equals(properties.getProperty(&quot;trustServerCertificate&quot;))) {</span>
+
+<span class="nc" id="L85">                        File pemF = new File(pem);</span>
+<span class="nc" id="L86">                        final String cnKey = pemF.getAbsolutePath() + pemF.length() + pemF.lastModified();</span>
+
+<span class="nc" id="L88">                        cn = CN_CACHE.get(cnKey);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                        if (cn == null) {</span>
+<span class="nc" id="L90">                            Path path = Paths.get(pem);</span>
+<span class="nc" id="L91">                            byte[] data = Files.readAllBytes(path);</span>
+
+<span class="nc" id="L93">                            CryptoPrimitives cp = new CryptoPrimitives();</span>
+
+<span class="nc" id="L95">                            X500Name x500name = new JcaX509CertificateHolder((X509Certificate) cp.bytesToCertificate(data)).getSubject();</span>
+<span class="nc" id="L96">                            RDN rdn = x500name.getRDNs(BCStyle.CN)[0];</span>
+<span class="nc" id="L97">                            cn = IETFUtils.valueToString(rdn.getFirst().getValue());</span>
+<span class="nc" id="L98">                            CN_CACHE.put(cnKey, cn);</span>
+                        }
+
+                    }
+<span class="nc" id="L102">                } catch (Exception e) {</span>
+                    /// Mostly a development env. just log it.
+<span class="nc" id="L104">                    logger.error(&quot;Error getting Subject CN from certificate. Try setting it specifically with hostnameOverride property. &quot; + e.getMessage());</span>
+
+<span class="fc" id="L106">                }</span>
+
+<span class="fc" id="L108">                sslp = properties.getProperty(&quot;sslProvider&quot;);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">                if (sslp == null) {</span>
+<span class="fc" id="L110">                    throw new RuntimeException(&quot;Property of sslProvider expected&quot;);</span>
+                }
+<span class="pc bpc" id="L112" title="1 of 4 branches missed.">                if (!sslp.equals(&quot;openSSL&quot;) &amp;&amp; !sslp.equals(&quot;JDK&quot;)) {</span>
+<span class="fc" id="L113">                    throw new RuntimeException(&quot;Property of sslProvider has to be either openSSL or JDK&quot;);</span>
+                }
+
+<span class="fc" id="L116">                nt = properties.getProperty(&quot;negotiationType&quot;);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">                if (nt == null) {</span>
+<span class="fc" id="L118">                    throw new RuntimeException(&quot;Property of negotiationType expected&quot;);</span>
+                }
+<span class="pc bpc" id="L120" title="1 of 4 branches missed.">                if (!nt.equals(&quot;TLS&quot;) &amp;&amp; !nt.equals(&quot;plainText&quot;)) {</span>
+<span class="fc" id="L121">                    throw new RuntimeException(&quot;Property of negotiationType has to be either TLS or plainText&quot;);</span>
+                }
+            }
+
+        }
+
+        try {
+<span class="fc bfc" id="L128" title="All 2 branches covered.">            if (protocol.equalsIgnoreCase(&quot;grpc&quot;)) {</span>
+<span class="fc" id="L129">                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port)</span>
+<span class="fc" id="L130">                        .usePlaintext(true);</span>
+<span class="fc" id="L131">                addNettyBuilderProps(channelBuilder, properties);</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            } else if (protocol.equalsIgnoreCase(&quot;grpcs&quot;)) {</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">                if (Utils.isNullOrEmpty(pem)) {</span>
+                    // use root certificate
+<span class="fc" id="L135">                    this.channelBuilder = NettyChannelBuilder.forAddress(addr, port);</span>
+<span class="fc" id="L136">                    addNettyBuilderProps(channelBuilder, properties);</span>
+                } else {
+                    try {
+
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">                        SslProvider sslprovider = sslp.equals(&quot;openSSL&quot;) ? SslProvider.OPENSSL : SslProvider.JDK;</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">                        NegotiationType ntype = nt.equals(&quot;TLS&quot;) ? NegotiationType.TLS : NegotiationType.PLAINTEXT;</span>
+
+<span class="fc" id="L143">                        SslContext sslContext = GrpcSslContexts.forClient()</span>
+<span class="fc" id="L144">                                .trustManager(new File(pem))</span>
+<span class="fc" id="L145">                                .sslProvider(sslprovider)</span>
+<span class="fc" id="L146">                                .build();</span>
+<span class="fc" id="L147">                        this.channelBuilder = NettyChannelBuilder.forAddress(addr, port)</span>
+<span class="fc" id="L148">                                .sslContext(sslContext)</span>
+<span class="fc" id="L149">                                .negotiationType(ntype);</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">                        if (cn != null) {</span>
+<span class="fc" id="L151">                            channelBuilder.overrideAuthority(cn);</span>
+                        }
+<span class="fc" id="L153">                        addNettyBuilderProps(channelBuilder, properties);</span>
+<span class="nc" id="L154">                    } catch (SSLException sslex) {</span>
+<span class="nc" id="L155">                        throw new RuntimeException(sslex);</span>
+<span class="fc" id="L156">                    }</span>
+                }
+            } else {
+<span class="nc" id="L159">                throw new RuntimeException(&quot;invalid protocol: &quot; + protocol);</span>
+            }
+<span class="nc" id="L161">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L162">            logger.error(e);</span>
+<span class="nc" id="L163">            throw e;</span>
+<span class="nc" id="L164">        } catch (Exception e) {</span>
+<span class="nc" id="L165">            logger.error(e);</span>
+<span class="nc" id="L166">            throw new RuntimeException(e);</span>
+<span class="fc" id="L167">        }</span>
+
+<span class="fc" id="L169">    }</span>
+
+<span class="fc" id="L171">    private static final Pattern METHOD_PATTERN = Pattern.compile(&quot;grpc\\.NettyChannelBuilderOption\\.([^.]*)$&quot;);</span>
+<span class="fc" id="L172">    private static final Map&lt;Class&lt;?&gt;, Class&lt;?&gt;&gt; WRAPPERS_TO_PRIM</span>
+            = new ImmutableMap.Builder&lt;Class&lt;?&gt;, Class&lt;?&gt;&gt;()
+<span class="fc" id="L174">            .put(Boolean.class, boolean.class)</span>
+<span class="fc" id="L175">            .put(Byte.class, byte.class)</span>
+<span class="fc" id="L176">            .put(Character.class, char.class)</span>
+<span class="fc" id="L177">            .put(Double.class, double.class)</span>
+<span class="fc" id="L178">            .put(Float.class, float.class)</span>
+<span class="fc" id="L179">            .put(Integer.class, int.class)</span>
+<span class="fc" id="L180">            .put(Long.class, long.class)</span>
+<span class="fc" id="L181">            .put(Short.class, short.class)</span>
+<span class="fc" id="L182">            .put(Void.class, void.class)</span>
+<span class="fc" id="L183">            .build();</span>
+
+    private void addNettyBuilderProps(NettyChannelBuilder channelBuilder, Properties props) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (props == null) {</span>
+<span class="fc" id="L188">            return;</span>
+        }
+
+<span class="fc bfc" id="L191" title="All 2 branches covered.">        for (Map.Entry&lt;?, ?&gt; es : props.entrySet()) {</span>
+<span class="fc" id="L192">            Object methodprop = es.getKey();</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">            if (methodprop == null) {</span>
+<span class="nc" id="L194">                continue;</span>
+            }
+<span class="fc" id="L196">            String methodprops = String.valueOf(methodprop);</span>
+
+<span class="fc" id="L198">            Matcher match = METHOD_PATTERN.matcher(methodprops);</span>
+
+<span class="fc" id="L200">            String methodName = null;</span>
+
+<span class="pc bpc" id="L202" title="3 of 4 branches missed.">            if (match.matches() &amp;&amp; match.groupCount() == 1) {</span>
+<span class="nc" id="L203">                methodName = match.group(1).trim();</span>
+
+            }
+<span class="pc bpc" id="L206" title="5 of 6 branches missed.">            if (null == methodName || &quot;forAddress&quot;.equals(methodName) || &quot;build&quot;.equals(methodName)) {</span>
+
+<span class="nc" id="L208">                continue;</span>
+            }
+
+<span class="nc" id="L211">            Object parmsArrayO = es.getValue();</span>
+            Object[] parmsArray;
+<span class="nc bnc" id="L213" title="All 2 branches missed.">            if (!(parmsArrayO instanceof Object[])) {</span>
+<span class="nc" id="L214">                parmsArray = new Object[] {parmsArrayO};</span>
+
+            } else {
+<span class="nc" id="L217">                parmsArray = (Object[]) parmsArrayO;</span>
+            }
+
+<span class="nc" id="L220">            Class&lt;?&gt;[] classParms = new Class[parmsArray.length];</span>
+<span class="nc" id="L221">            int i = -1;</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">            for (Object oparm : parmsArray) {</span>
+<span class="nc" id="L223">                ++i;</span>
+
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                if (null == oparm) {</span>
+<span class="nc" id="L226">                    classParms[i] = Object.class;</span>
+<span class="nc" id="L227">                    continue;</span>
+                }
+
+<span class="nc" id="L230">                Class&lt;?&gt; unwrapped = WRAPPERS_TO_PRIM.get(oparm.getClass());</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">                if (null != unwrapped) {</span>
+<span class="nc" id="L232">                    classParms[i] = unwrapped;</span>
+                } else {
+
+<span class="nc" id="L235">                    Class&lt;?&gt; clz = oparm.getClass();</span>
+
+<span class="nc" id="L237">                    Class&lt;?&gt; ecz = clz.getEnclosingClass();</span>
+<span class="nc bnc" id="L238" title="All 4 branches missed.">                    if (null != ecz &amp;&amp; ecz.isEnum()) {</span>
+<span class="nc" id="L239">                        clz = ecz;</span>
+                    }
+
+<span class="nc" id="L242">                    classParms[i] = clz;</span>
+                }
+            }
+
+<span class="nc" id="L246">            final Method method = channelBuilder.getClass().getMethod(methodName, classParms);</span>
+
+<span class="nc" id="L248">            method.invoke(channelBuilder, parmsArray);</span>
+
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            if (logger.isTraceEnabled()) {</span>
+<span class="nc" id="L251">                StringBuilder sb = new StringBuilder(200);</span>
+<span class="nc" id="L252">                String sep = &quot;&quot;;</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                for (Object p : parmsArray) {</span>
+<span class="nc" id="L254">                    sb.append(sep).append(p + &quot;&quot;);</span>
+<span class="nc" id="L255">                    sep = &quot;, &quot;;</span>
+
+                }
+<span class="nc" id="L258">                logger.trace(String.format(&quot;Endpoint with url: %s set managed channel builder method %s (%s) &quot;, url, method, sb.toString()));</span>
+
+            }
+
+<span class="nc" id="L262">        }</span>
+
+<span class="fc" id="L264">    }</span>
+
+    ManagedChannelBuilder&lt;?&gt; getChannelBuilder() {
+<span class="fc" id="L267">        return this.channelBuilder;</span>
+    }
+
+    String getHost() {
+<span class="fc" id="L271">        return this.addr;</span>
+    }
+
+    int getPort() {
+<span class="fc" id="L275">        return this.port;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>
