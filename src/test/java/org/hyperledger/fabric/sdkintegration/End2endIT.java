@@ -31,6 +31,7 @@ import junit.framework.Assert;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Configtx;
 import org.hyperledger.fabric.protos.ledger.rwset.kvrwset.KvRwset;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
@@ -83,7 +84,7 @@ public class End2endIT {
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String CHAIN_CODE_NAME = "mycc_yl";
-    private static final String CHAIN_CODE_PATH = "github.com/example_cc";
+    private static final String CHAIN_CODE_PATH = "github.com/hyperledger/fabric/examples/chaincode/go/chaincode_yl";
     private static final String CHAIN_CODE_VERSION = "1";
 
     private static final String CHANNEL_NAME = "mychannel";
@@ -202,7 +203,7 @@ public class End2endIT {
             ////////////////////////////
             //Construct and run the channels
             this.sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            this.myChannel = constructChannel(CHANNEL_NAME, client, sampleOrg);
+            this.myChannel = this.constructChannel(this.CHANNEL_NAME, this.client, this.sampleOrg);
             this.chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
                     .setVersion(CHAIN_CODE_VERSION)
                     .setPath(CHAIN_CODE_PATH).build();
@@ -743,6 +744,69 @@ public class End2endIT {
         }
     }
     //CHECKSTYLE.ON: Method length is 320 lines (max allowed is 150).
+
+    private Channel reconstructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
+
+        client.setUserContext(sampleOrg.getPeerAdmin());
+        Channel newChannel = client.newChannel(name);
+
+        for (String orderName : sampleOrg.getOrdererNames()) {
+            newChannel.addOrderer(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
+                    testConfig.getOrdererProperties(orderName)));
+        }
+
+        for (String peerName : sampleOrg.getPeerNames()) {
+            String peerLocation = sampleOrg.getPeerLocation(peerName);
+            Peer peer = client.newPeer(peerName, peerLocation, testConfig.getPeerProperties(peerName));
+
+            //Query the actual peer for which channels it belongs to and check it belongs to this channel
+            Set<String> channels = client.queryChannels(peer);
+            if (!channels.contains(name)) {
+                throw new AssertionError(format("Peer %s does not appear to belong to channel %s", peerName, name));
+            }
+
+            newChannel.addPeer(peer);
+            sampleOrg.addPeer(peer);
+        }
+
+        for (String eventHubName : sampleOrg.getEventHubNames()) {
+            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
+                    testConfig.getEventHubProperties(eventHubName));
+            newChannel.addEventHub(eventHub);
+        }
+
+        newChannel.initialize();
+
+        //Just see if we can get channelConfiguration. Not required for the rest of scenario but should work.
+        final byte[] channelConfigurationBytes = newChannel.getChannelConfigurationBytes();
+        Configtx.Config channelConfig = Configtx.Config.parseFrom(channelConfigurationBytes);
+        assertNotNull(channelConfig);
+        Configtx.ConfigGroup channelGroup = channelConfig.getChannelGroup();
+        assertNotNull(channelGroup);
+        Map<String, Configtx.ConfigGroup> groupsMap = channelGroup.getGroupsMap();
+        assertNotNull(groupsMap.get("Orderer"));
+        assertNotNull(groupsMap.get("Application"));
+
+        //Before return lets see if we have the chaincode on the peers that we expect from End2endIT
+        //And if they were instantiated too.
+
+        /*for (Peer peer : newChannel.getPeers()) {
+
+            if (!checkInstalledChaincode(client, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION)) {
+                throw new AssertionError(format("Peer %s is missing chaincode name: %s, path:%s, version: %s",
+                        peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+            }
+
+            if (!checkInstantiatedChaincode(newChannel, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION)) {
+
+                throw new AssertionError(format("Peer %s is missing instantiated chaincode name: %s, path:%s, version: %s",
+                        peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+            }
+
+        }*/
+
+        return newChannel;
+    }
 
     private Channel constructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
         ////////////////////////////

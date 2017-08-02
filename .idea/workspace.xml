@@ -18,104 +18,54 @@
       <file leaf-file-name="End2endIT.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="75">
-              <caret line="203" column="77" lean-forward="false" selection-start-line="203" selection-start-column="77" selection-end-line="203" selection-end-column="77" />
+            <state relative-caret-position="138">
+              <caret line="236" column="31" lean-forward="true" selection-start-line="236" selection-start-column="31" selection-end-line="236" selection-end-column="31" />
               <folding>
                 <element signature="docComment;class#End2endIT#0" expanded="false" />
                 <element signature="method#checkConfig#0;class#End2endIT#0" expanded="false" />
                 <element signature="method#clearConfig#0;class#End2endIT#0" expanded="false" />
-                <element signature="e#4992#5020#0" expanded="false" />
-                <element signature="e#5234#5280#0" expanded="false" />
-                <element signature="e#5877#5912#0" expanded="false" />
-                <element signature="e#8873#8901#0" expanded="false" />
-                <element signature="e#10051#10117#0" expanded="false" />
+                <element signature="e#5089#5117#0" expanded="false" />
+                <element signature="e#5331#5377#0" expanded="false" />
+                <element signature="e#5974#6009#0" expanded="false" />
+                <element signature="e#7022#7096#0" expanded="false" />
+                <element signature="e#7346#7399#0" expanded="false" />
+                <element signature="e#8970#8998#0" expanded="false" />
+                <element signature="e#10168#10234#0" expanded="false" />
                 <element signature="method#transfer#0;class#End2endIT#0" expanded="false" />
-                <element signature="e#11331#11460#0" expanded="false" />
-                <element signature="e#11718#11733#0" expanded="false" />
-                <element signature="e#13389#13480#0" expanded="false" />
-                <element signature="e#15695#15723#0" expanded="false" />
-                <element signature="e#16298#16312#0" expanded="false" />
+                <element signature="e#11448#11577#0" expanded="false" />
+                <element signature="e#11835#11850#0" expanded="false" />
+                <element signature="e#13506#13597#0" expanded="false" />
+                <element signature="e#15812#15840#0" expanded="false" />
+                <element signature="e#16415#16429#0" expanded="false" />
                 <element signature="method#query#0;class#End2endIT#0" expanded="false" />
-                <element signature="e#16693#16779#0" expanded="false" />
+                <element signature="e#16810#16896#0" expanded="false" />
                 <element signature="method#runChannel#0;class#End2endIT#0" expanded="false" />
-                <element signature="e#26857#26872#0" expanded="false" />
-                <element signature="e#27123#32360#0" expanded="false" />
-                <marker date="1501659944972" expanded="false" signature="20990:21081" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="21423:21585" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="22279:22399" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="22460:22563" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="23776:24111" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="27578:27656" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="29319:29479" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="31758:31849" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="32392:35045" ph="{...}" />
-                <marker date="1501659944972" expanded="false" signature="32779:32886" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="35066:35581" ph="{...}" />
-                <marker date="1501659944972" expanded="false" signature="35656:35888" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="35955:36082" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="38731:38802" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="39163:39339" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="42134:42306" ph="{...}" />
-                <marker date="1501659944972" expanded="false" signature="42354:42922" ph="{}" />
-                <marker date="1501659944972" expanded="false" signature="42364:42916" ph="//..." />
-                <marker date="1501659944972" expanded="false" signature="42994:43202" ph="{...}" />
-                <marker date="1501659944972" expanded="false" signature="43306:52534" ph="{...}" />
-                <marker date="1501659944972" expanded="false" signature="52591:52939" ph="{...}" />
+                <element signature="e#26974#26989#0" expanded="false" />
+                <element signature="e#27240#32477#0" expanded="false" />
+                <element signature="e#40844#40936#0" expanded="false" />
+                <element signature="method#constructChannel#0;class#End2endIT#0" expanded="false" />
+                <marker date="1501663158234" expanded="false" signature="21107:21198" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="21540:21702" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="22396:22516" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="22577:22680" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="23893:24228" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="27695:27773" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="29436:29596" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="31875:31966" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="32509:35162" ph="{...}" />
+                <marker date="1501663158234" expanded="false" signature="32896:33003" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="35183:35698" ph="{...}" />
+                <marker date="1501663158234" expanded="false" signature="35773:36005" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="36072:36199" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="41881:41952" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="42313:42489" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="45284:45456" ph="{...}" />
+                <marker date="1501663158234" expanded="false" signature="45504:46072" ph="{}" />
+                <marker date="1501663158234" expanded="false" signature="45514:46066" ph="//..." />
+                <marker date="1501663158234" expanded="false" signature="46144:46352" ph="{...}" />
+                <marker date="1501663158234" expanded="false" signature="46456:55684" ph="{...}" />
+                <marker date="1501663158234" expanded="false" signature="55741:56089" ph="{...}" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="HFCAClient.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric_ca/sdk/HFCAClient.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="193">
-              <caret line="267" column="28" lean-forward="false" selection-start-line="267" selection-start-column="22" selection-end-line="267" selection-end-column="28" />
-              <folding>
-                <element signature="docComment;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#HFCAClient#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#HFCAClient#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#createNewInstance#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#createNewInstance#1;class#HFCAClient#0" expanded="false" />
-                <element signature="method#setCryptoSuite#0;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#register#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#register#0;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#enroll#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#enroll#0;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#enroll#1;class#HFCAClient#0" expanded="false" />
-                <element signature="method#enroll#1;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#reenroll#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#reenroll#0;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#reenroll#1;class#HFCAClient#0" expanded="false" />
-                <element signature="method#reenroll#1;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#revoke#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#revoke#0;class#HFCAClient#0" expanded="false" />
-                <element signature="e#18103#18117#0" expanded="false" />
-                <element signature="docComment;method#revoke#1;class#HFCAClient#0" expanded="false" />
-                <element signature="method#revoke#1;class#HFCAClient#0" expanded="false" />
-                <element signature="docComment;method#httpPost#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#httpPost#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#httpPost#1;class#HFCAClient#0" expanded="false" />
-                <element signature="method#getHTTPAuthCertificate#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#setUpSSL#0;class#HFCAClient#0" expanded="false" />
-                <element signature="class#AllHostsSSLSocketFactory#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#AllHostsSSLSocketFactory#0;class#AllHostsSSLSocketFactory#0;class#HFCAClient#0" expanded="false" />
-                <element signature="class#28566:29069" expanded="false" />
-                <element signature="method#checkClientTrusted#0;class#28566:29069" expanded="false" />
-                <element signature="method#checkServerTrusted#0;class#28566:29069" expanded="false" />
-                <element signature="method#createSocket#0;class#AllHostsSSLSocketFactory#0;class#HFCAClient#0" expanded="false" />
-                <element signature="method#createSocket#1;class#AllHostsSSLSocketFactory#0;class#HFCAClient#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ChannelConfiguration.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/ChannelConfiguration.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-182">
-              <caret line="27" column="19" lean-forward="false" selection-start-line="27" selection-start-column="19" selection-end-line="27" selection-end-column="19" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -123,9 +73,13 @@
       <file leaf-file-name="HFClient.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/HFClient.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="226">
-              <caret line="134" column="48" lean-forward="false" selection-start-line="134" selection-start-column="48" selection-end-line="134" selection-end-column="48" />
-              <folding />
+            <state relative-caret-position="185">
+              <caret line="53" column="34" lean-forward="false" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
+              <folding>
+                <element signature="e#2160#2161#0" expanded="true" />
+                <element signature="e#2198#2199#0" expanded="true" />
+                <element signature="docComment;method#newChannel#0;class#HFClient#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -133,51 +87,203 @@
       <file leaf-file-name="Channel.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/Channel.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="193">
-              <caret line="161" column="110" lean-forward="false" selection-start-line="161" selection-start-column="90" selection-end-line="161" selection-end-column="110" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="SampleStore.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/SampleStore.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="193">
-              <caret line="111" column="22" lean-forward="false" selection-start-line="111" selection-start-column="22" selection-end-line="111" selection-end-column="22" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="TestConfig.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdk/testutils/TestConfig.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="726">
-              <caret line="108" column="180" lean-forward="false" selection-start-line="108" selection-start-column="180" selection-end-line="108" selection-end-column="180" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Util.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/Util.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1193">
-              <caret line="96" column="33" lean-forward="false" selection-start-line="96" selection-start-column="23" selection-end-line="96" selection-end-column="33" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ChaincodeID.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/ChaincodeID.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2025">
-              <caret line="99" column="26" lean-forward="false" selection-start-line="99" selection-start-column="26" selection-end-line="99" selection-end-column="26" />
+            <state relative-caret-position="410">
+              <caret line="445" column="46" lean-forward="true" selection-start-line="445" selection-start-column="46" selection-end-line="445" selection-end-column="46" />
               <folding>
-                <element signature="e#2709#2710#0" expanded="true" />
-                <element signature="e#2745#2746#0" expanded="true" />
+                <element signature="docComment;class#Channel#0" expanded="false" />
+                <element signature="e#7047#7113#0" expanded="false" />
+                <element signature="docComment;method#getEventHubs#0;class#Channel#0" expanded="false" />
+                <element signature="e#9490#9589#0" expanded="false" />
+                <element signature="method#updateChannelConfiguration#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#updateChannelConfiguration#1;class#Channel#0" expanded="false" />
+                <element signature="method#updateChannelConfiguration#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendUpdateChannel#0;class#Channel#0" expanded="false" />
+                <element signature="e#14743#14759#0" expanded="false" />
+                <element signature="method#newSystemChannel#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getName#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#addPeer#0;class#Channel#0" expanded="false" />
+                <element signature="method#addPeer#0;class#Channel#0" expanded="false" />
+                <element signature="method#joinPeer#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#addOrderer#0;class#Channel#0" expanded="false" />
+                <element signature="method#addOrderer#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#addEventHub#0;class#Channel#0" expanded="false" />
+                <element signature="method#addEventHub#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getPeers#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getDeployWaitTime#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#setDeployWaitTime#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getTransactionWaitTime#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#setTransactionWaitTime#0;class#Channel#0" expanded="false" />
+                <element signature="method#setTransactionWaitTime#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#initialize#0;class#Channel#0" expanded="false" />
+                <element signature="method#initialize#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#loadCACertificates#0;class#Channel#0" expanded="false" />
+                <element signature="method#loadCACertificates#0;class#Channel#0" expanded="false" />
+                <element signature="method#getGenesisBlock#0;class#Channel#0" expanded="false" />
+                <element signature="method#getUpdateChannelConfigurationSignature#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="method#MSP#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getID#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="method#getID#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getAdminCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="method#getAdminCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getRootCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="method#getRootCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getIntermediateCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="method#getIntermediateCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+                <element signature="e#35045#35054#0" expanded="false" />
+                <element signature="method#parseConfigBlock#0;class#Channel#0" expanded="false" />
+                <element signature="e#36535#36717#0" expanded="false" />
+                <element signature="method#traverseConfigGroupsMSP#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getConfigurationBlock#0;class#Channel#0" expanded="false" />
+                <element signature="method#getConfigurationBlock#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#getChannelConfigurationBytes#0;class#Channel#0" expanded="false" />
+                <element signature="method#getChannelConfigurationBytes#0;class#Channel#0" expanded="false" />
+                <element signature="method#getLastConfigIndex#0;class#Channel#0" expanded="false" />
+                <element signature="method#getBlockByNumber#0;class#Channel#0" expanded="false" />
+                <element signature="method#seekBlock#0;class#Channel#0" expanded="false" />
+                <element signature="method#getLatestBlock#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#createNewInstance#0;class#Channel#0" expanded="false" />
+                <element signature="method#createNewInstance#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendInstantiationProposal#0;class#Channel#0" expanded="false" />
+                <element signature="method#sendInstantiationProposal#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendInstantiationProposal#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendInstantiationProposal#1;class#Channel#0" expanded="false" />
+                <element signature="method#getTransactionContext#0;class#Channel#0" expanded="false" />
+                <element signature="method#getTransactionContext#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendInstallProposal#0;class#Channel#0" expanded="false" />
+                <element signature="method#sendInstallProposal#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendInstallProposal#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendInstallProposal#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendUpgradeProposal#0;class#Channel#0" expanded="false" />
+                <element signature="method#sendUpgradeProposal#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendUpgradeProposal#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendUpgradeProposal#1;class#Channel#0" expanded="false" />
+                <element signature="method#getSignedProposal#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockByHash#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockByHash#0;class#Channel#0" expanded="false" />
+                <element signature="method#checkChannelState#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockByHash#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockByHash#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockByNumber#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockByNumber#0;class#Channel#0" expanded="false" />
+                <element signature="method#getRandomPeer#0;class#Channel#0" expanded="false" />
+                <element signature="method#getRandomOrderer#0;class#Channel#0" expanded="false" />
+                <element signature="method#checkPeer#0;class#Channel#0" expanded="false" />
+                <element signature="method#checkOrderer#0;class#Channel#0" expanded="false" />
+                <element signature="method#checkPeers#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockByNumber#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockByNumber#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockByTransactionID#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockByTransactionID#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockByTransactionID#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockByTransactionID#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockchainInfo#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockchainInfo#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryBlockchainInfo#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryBlockchainInfo#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryTransactionByID#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryTransactionByID#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryTransactionByID#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryTransactionByID#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryChannels#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryInstalledChaincodes#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendTransactionProposal#0;class#Channel#0" expanded="false" />
+                <element signature="method#sendTransactionProposal#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendTransactionProposal#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendTransactionProposal#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryByChaincode#0;class#Channel#0" expanded="false" />
+                <element signature="method#queryByChaincode#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#queryByChaincode#1;class#Channel#0" expanded="false" />
+                <element signature="method#queryByChaincode#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendProposal#0;class#Channel#0" expanded="false" />
+                <element signature="method#sendProposalToPeers#0;class#Channel#0" expanded="false" />
+                <element signature="class#86426:86748" expanded="false" />
+                <element signature="method#Pair#0;class#86426:86748" expanded="false" />
+                <element signature="e#90945#91002#0" expanded="false" />
+                <element signature="docComment;method#sendTransaction#0;class#Channel#0" expanded="false" />
+                <element signature="method#sendTransaction#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendTransaction#1;class#Channel#0" expanded="false" />
+                <element signature="method#sendTransaction#1;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendTransaction#2;class#Channel#0" expanded="false" />
+                <element signature="method#sendTransaction#2;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#sendTransaction#3;class#Channel#0" expanded="false" />
+                <element signature="method#sendTransaction#3;class#Channel#0" expanded="false" />
+                <element signature="method#createTransactionEnvelope#0;class#Channel#0" expanded="false" />
+                <element signature="method#getChannelConfigurationSignature#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#registerBlockListener#0;class#Channel#0" expanded="false" />
+                <element signature="method#registerBlockListener#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;field#channelEventQue#0;class#Channel#0" expanded="false" />
+                <element signature="class#ChannelEventQue#0;class#Channel#0" expanded="false" />
+                <element signature="method#addBEvent#0;class#ChannelEventQue#0;class#Channel#0" expanded="false" />
+                <element signature="e#100292#100338#0" expanded="false" />
+                <element signature="method#getNextEvent#0;class#ChannelEventQue#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;field#eventQueueThread#0;class#Channel#0" expanded="false" />
+                <element signature="method#startEventQue#0;class#Channel#0" expanded="false" />
+                <element signature="e#101992#103659#0" expanded="false" />
+                <element signature="e#103663#103702#0" expanded="false" />
+                <element signature="class#BL#0;class#Channel#0" expanded="false" />
+                <element signature="method#BL#0;class#BL#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#registerTransactionListenerProcessor#0;class#Channel#0" expanded="false" />
+                <element signature="method#registerTransactionListenerProcessor#0;class#Channel#0" expanded="false" />
+                <element signature="e#105497#106809#0" expanded="false" />
+                <element signature="e#106232#106319#0" expanded="false" />
+                <element signature="class#TL#0;class#Channel#0" expanded="false" />
+                <element signature="e#107173#107244#0" expanded="false" />
+                <element signature="method#eventReceived#0;class#TL#0;class#Channel#0" expanded="false" />
+                <element signature="method#TL#0;class#TL#0;class#Channel#0" expanded="false" />
+                <element signature="e#107689#107729#0" expanded="false" />
+                <element signature="method#addListener#0;class#TL#0;class#Channel#0" expanded="false" />
+                <element signature="method#fire#0;class#TL#0;class#Channel#0" expanded="false" />
+                <element signature="e#109294#109357#0" expanded="false" />
+                <element signature="docComment;method#registerTxListener#0;class#Channel#0" expanded="false" />
+                <element signature="method#registerTxListener#0;class#Channel#0" expanded="false" />
+                <element signature="docComment;method#shutdown#0;class#Channel#0" expanded="false" />
+                <element signature="method#shutdown#0;class#Channel#0" expanded="false" />
+                <element signature="method#finalize#0;class#Channel#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="End2endAndBackAgainIT.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2424">
+              <caret line="595" column="27" lean-forward="false" selection-start-line="595" selection-start-column="27" selection-end-line="595" selection-end-column="27" />
+              <folding>
+                <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="method#checkConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="method#clearConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="method#setup#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="e#4696#4724#0" expanded="false" />
+                <element signature="e#4942#4988#0" expanded="false" />
+                <element signature="e#5460#5556#0" expanded="false" />
+                <element signature="e#6264#6292#0" expanded="false" />
+                <element signature="e#7935#7963#0" expanded="false" />
+                <element signature="e#8539#15668#0" expanded="false" />
+                <element signature="e#8744#8762#0" expanded="false" />
+                <element signature="e#9770#9798#0" expanded="false" />
+                <element signature="e#11347#11438#0" expanded="false" />
+                <element signature="e#11889#11907#0" expanded="false" />
+                <element signature="e#14602#14693#0" expanded="false" />
+                <element signature="e#15680#18343#0" expanded="false" />
+                <element signature="e#17416#17418#0" expanded="false" />
+                <element signature="e#18355#18560#0" expanded="false" />
+                <element signature="e#18576#19336#0" expanded="false" />
+                <element signature="method#moveAmount#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="e#19873#19888#0" expanded="false" />
+                <element signature="e#21157#21248#0" expanded="false" />
+                <element signature="e#22380#22408#0" expanded="false" />
+                <element signature="e#24916#25008#0" expanded="false" />
+                <element signature="method#queryChaincodeForExpectedValue#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="method#waitOnFabric#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="method#waitOnFabric#1;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="e#27552#27639#0" expanded="false" />
+                <element signature="method#checkInstantiatedChaincode#0;class#End2endAndBackAgainIT#0" expanded="false" />
+                <element signature="method#out#0;class#End2endAndBackAgainIT#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -256,6 +362,40 @@
               <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
               <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="fixture" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="fabric-sdk-java-op" type="b2602c69:ProjectViewProjectNode" />
+              <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="fixture" type="462c0819:PsiDirectoryNode" />
+              <item name="sdkintegration" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="fabric-sdk-java-op" type="b2602c69:ProjectViewProjectNode" />
+              <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="fixture" type="462c0819:PsiDirectoryNode" />
+              <item name="sdkintegration" type="462c0819:PsiDirectoryNode" />
+              <item name="e2e-2Orgs" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="fabric-sdk-java-op" type="b2602c69:ProjectViewProjectNode" />
+              <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="fixture" type="462c0819:PsiDirectoryNode" />
+              <item name="sdkintegration" type="462c0819:PsiDirectoryNode" />
+              <item name="e2e-2Orgs" type="462c0819:PsiDirectoryNode" />
+              <item name="channel" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="fabric-sdk-java-op" type="b2602c69:ProjectViewProjectNode" />
+              <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
               <item name="java" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -265,6 +405,25 @@
               <item name="test" type="462c0819:PsiDirectoryNode" />
               <item name="java" type="462c0819:PsiDirectoryNode" />
               <item name="hyperledger" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="fabric-sdk-java-op" type="b2602c69:ProjectViewProjectNode" />
+              <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="hyperledger" type="462c0819:PsiDirectoryNode" />
+              <item name="fabric" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="fabric-sdk-java-op" type="b2602c69:ProjectViewProjectNode" />
+              <item name="fabric-sdk-java-op" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="hyperledger" type="462c0819:PsiDirectoryNode" />
+              <item name="fabric" type="462c0819:PsiDirectoryNode" />
+              <item name="sdkintegration" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -461,7 +620,14 @@
       <option name="project" value="LOCAL" />
       <updated>1501659100514</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="modify End2endIT.java">
+      <created>1501659952805</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1501659952805</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -532,7 +698,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="3" />
+      <option name="time" value="4" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -545,43 +711,47 @@
             <element signature="docComment;class#End2endIT#0" expanded="false" />
             <element signature="method#checkConfig#0;class#End2endIT#0" expanded="false" />
             <element signature="method#clearConfig#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#4992#5020#0" expanded="false" />
-            <element signature="e#5234#5280#0" expanded="false" />
-            <element signature="e#5877#5912#0" expanded="false" />
-            <element signature="e#8873#8901#0" expanded="false" />
-            <element signature="e#10051#10117#0" expanded="false" />
+            <element signature="e#5089#5117#0" expanded="false" />
+            <element signature="e#5331#5377#0" expanded="false" />
+            <element signature="e#5974#6009#0" expanded="false" />
+            <element signature="e#7022#7096#0" expanded="false" />
+            <element signature="e#7346#7399#0" expanded="false" />
+            <element signature="e#8970#8998#0" expanded="false" />
+            <element signature="e#10168#10234#0" expanded="false" />
             <element signature="method#transfer#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#11331#11460#0" expanded="false" />
-            <element signature="e#11718#11733#0" expanded="false" />
-            <element signature="e#13389#13480#0" expanded="false" />
-            <element signature="e#15695#15723#0" expanded="false" />
-            <element signature="e#16298#16312#0" expanded="false" />
+            <element signature="e#11448#11577#0" expanded="false" />
+            <element signature="e#11835#11850#0" expanded="false" />
+            <element signature="e#13506#13597#0" expanded="false" />
+            <element signature="e#15812#15840#0" expanded="false" />
+            <element signature="e#16415#16429#0" expanded="false" />
             <element signature="method#query#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#16693#16779#0" expanded="false" />
+            <element signature="e#16810#16896#0" expanded="false" />
             <element signature="method#runChannel#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#26857#26872#0" expanded="false" />
-            <element signature="e#27123#32360#0" expanded="false" />
-            <marker date="1501659944972" expanded="false" signature="20990:21081" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="21423:21585" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="22279:22399" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="22460:22563" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="23776:24111" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="27578:27656" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="29319:29479" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="31758:31849" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="32392:35045" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="32779:32886" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="35066:35581" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="35656:35888" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="35955:36082" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="38731:38802" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="39163:39339" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="42134:42306" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="42354:42922" ph="{}" />
-            <marker date="1501659944972" expanded="false" signature="42364:42916" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="42994:43202" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="43306:52534" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="52591:52939" ph="{...}" />
+            <element signature="e#26974#26989#0" expanded="false" />
+            <element signature="e#27240#32477#0" expanded="false" />
+            <element signature="e#40844#40936#0" expanded="false" />
+            <element signature="method#constructChannel#0;class#End2endIT#0" expanded="false" />
+            <marker date="1501663158234" expanded="false" signature="21107:21198" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="21540:21702" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="22396:22516" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="22577:22680" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="23893:24228" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="27695:27773" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="29436:29596" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="31875:31966" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="32509:35162" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="32896:33003" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="35183:35698" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="35773:36005" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="36072:36199" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="41881:41952" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="42313:42489" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="45284:45456" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="45504:46072" ph="{}" />
+            <marker date="1501663158234" expanded="false" signature="45514:46066" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="46144:46352" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="46456:55684" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="55741:56089" ph="{...}" />
           </folding>
         </state>
       </provider>
@@ -669,34 +839,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/Channel.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="193">
-          <caret line="161" column="110" lean-forward="false" selection-start-line="161" selection-start-column="90" selection-end-line="161" selection-end-column="110" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/HFClient.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="226">
-          <caret line="134" column="48" lean-forward="false" selection-start-line="134" selection-start-column="48" selection-end-line="134" selection-end-column="48" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/test/fixture/sdkintegration/e2e-2Orgs/channel/channel.tx">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
           <caret line="9" column="12" lean-forward="true" selection-start-line="9" selection-start-column="12" selection-end-line="9" selection-end-column="12" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/ChannelConfiguration.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-182">
-          <caret line="27" column="19" lean-forward="false" selection-start-line="27" selection-start-column="19" selection-end-line="27" selection-end-column="19" />
           <folding />
         </state>
       </provider>
@@ -759,51 +905,316 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdk/ChannelTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="126">
+          <caret line="372" column="80" lean-forward="false" selection-start-line="372" selection-start-column="80" selection-end-line="372" selection-end-column="80" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/Orderer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="143">
+          <caret line="139" column="42" lean-forward="false" selection-start-line="139" selection-start-column="42" selection-end-line="139" selection-end-column="42" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/OrdererClient.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="193">
+          <caret line="113" column="25" lean-forward="false" selection-start-line="113" selection-start-column="25" selection-end-line="113" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/ChannelConfiguration.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-182">
+          <caret line="27" column="19" lean-forward="false" selection-start-line="27" selection-start-column="19" selection-end-line="27" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://G:/DevelopeSoftware/Java/jdk1.8.0_112/src.zip!/java/io/Serializable.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3625">
+          <caret line="168" column="17" lean-forward="false" selection-start-line="168" selection-start-column="17" selection-end-line="168" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/SampleUser.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="29" column="45" lean-forward="false" selection-start-line="29" selection-start-column="45" selection-end-line="29" selection-end-column="45" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/Channel.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="410">
+          <caret line="445" column="46" lean-forward="true" selection-start-line="445" selection-start-column="46" selection-end-line="445" selection-end-column="46" />
+          <folding>
+            <element signature="docComment;class#Channel#0" expanded="false" />
+            <element signature="e#7047#7113#0" expanded="false" />
+            <element signature="docComment;method#getEventHubs#0;class#Channel#0" expanded="false" />
+            <element signature="e#9490#9589#0" expanded="false" />
+            <element signature="method#updateChannelConfiguration#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#updateChannelConfiguration#1;class#Channel#0" expanded="false" />
+            <element signature="method#updateChannelConfiguration#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendUpdateChannel#0;class#Channel#0" expanded="false" />
+            <element signature="e#14743#14759#0" expanded="false" />
+            <element signature="method#newSystemChannel#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getName#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#addPeer#0;class#Channel#0" expanded="false" />
+            <element signature="method#addPeer#0;class#Channel#0" expanded="false" />
+            <element signature="method#joinPeer#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#addOrderer#0;class#Channel#0" expanded="false" />
+            <element signature="method#addOrderer#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#addEventHub#0;class#Channel#0" expanded="false" />
+            <element signature="method#addEventHub#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getPeers#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getDeployWaitTime#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#setDeployWaitTime#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getTransactionWaitTime#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#setTransactionWaitTime#0;class#Channel#0" expanded="false" />
+            <element signature="method#setTransactionWaitTime#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#initialize#0;class#Channel#0" expanded="false" />
+            <element signature="method#initialize#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#loadCACertificates#0;class#Channel#0" expanded="false" />
+            <element signature="method#loadCACertificates#0;class#Channel#0" expanded="false" />
+            <element signature="method#getGenesisBlock#0;class#Channel#0" expanded="false" />
+            <element signature="method#getUpdateChannelConfigurationSignature#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="method#MSP#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getID#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="method#getID#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getAdminCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="method#getAdminCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getRootCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="method#getRootCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getIntermediateCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="method#getIntermediateCerts#0;class#MSP#0;class#Channel#0" expanded="false" />
+            <element signature="e#35045#35054#0" expanded="false" />
+            <element signature="method#parseConfigBlock#0;class#Channel#0" expanded="false" />
+            <element signature="e#36535#36717#0" expanded="false" />
+            <element signature="method#traverseConfigGroupsMSP#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getConfigurationBlock#0;class#Channel#0" expanded="false" />
+            <element signature="method#getConfigurationBlock#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#getChannelConfigurationBytes#0;class#Channel#0" expanded="false" />
+            <element signature="method#getChannelConfigurationBytes#0;class#Channel#0" expanded="false" />
+            <element signature="method#getLastConfigIndex#0;class#Channel#0" expanded="false" />
+            <element signature="method#getBlockByNumber#0;class#Channel#0" expanded="false" />
+            <element signature="method#seekBlock#0;class#Channel#0" expanded="false" />
+            <element signature="method#getLatestBlock#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#createNewInstance#0;class#Channel#0" expanded="false" />
+            <element signature="method#createNewInstance#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendInstantiationProposal#0;class#Channel#0" expanded="false" />
+            <element signature="method#sendInstantiationProposal#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendInstantiationProposal#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendInstantiationProposal#1;class#Channel#0" expanded="false" />
+            <element signature="method#getTransactionContext#0;class#Channel#0" expanded="false" />
+            <element signature="method#getTransactionContext#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendInstallProposal#0;class#Channel#0" expanded="false" />
+            <element signature="method#sendInstallProposal#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendInstallProposal#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendInstallProposal#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendUpgradeProposal#0;class#Channel#0" expanded="false" />
+            <element signature="method#sendUpgradeProposal#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendUpgradeProposal#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendUpgradeProposal#1;class#Channel#0" expanded="false" />
+            <element signature="method#getSignedProposal#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockByHash#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockByHash#0;class#Channel#0" expanded="false" />
+            <element signature="method#checkChannelState#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockByHash#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockByHash#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockByNumber#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockByNumber#0;class#Channel#0" expanded="false" />
+            <element signature="method#getRandomPeer#0;class#Channel#0" expanded="false" />
+            <element signature="method#getRandomOrderer#0;class#Channel#0" expanded="false" />
+            <element signature="method#checkPeer#0;class#Channel#0" expanded="false" />
+            <element signature="method#checkOrderer#0;class#Channel#0" expanded="false" />
+            <element signature="method#checkPeers#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockByNumber#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockByNumber#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockByTransactionID#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockByTransactionID#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockByTransactionID#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockByTransactionID#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockchainInfo#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockchainInfo#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryBlockchainInfo#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryBlockchainInfo#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryTransactionByID#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryTransactionByID#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryTransactionByID#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryTransactionByID#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryChannels#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryInstalledChaincodes#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendTransactionProposal#0;class#Channel#0" expanded="false" />
+            <element signature="method#sendTransactionProposal#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendTransactionProposal#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendTransactionProposal#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryByChaincode#0;class#Channel#0" expanded="false" />
+            <element signature="method#queryByChaincode#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#queryByChaincode#1;class#Channel#0" expanded="false" />
+            <element signature="method#queryByChaincode#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendProposal#0;class#Channel#0" expanded="false" />
+            <element signature="method#sendProposalToPeers#0;class#Channel#0" expanded="false" />
+            <element signature="class#86426:86748" expanded="false" />
+            <element signature="method#Pair#0;class#86426:86748" expanded="false" />
+            <element signature="e#90945#91002#0" expanded="false" />
+            <element signature="docComment;method#sendTransaction#0;class#Channel#0" expanded="false" />
+            <element signature="method#sendTransaction#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendTransaction#1;class#Channel#0" expanded="false" />
+            <element signature="method#sendTransaction#1;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendTransaction#2;class#Channel#0" expanded="false" />
+            <element signature="method#sendTransaction#2;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#sendTransaction#3;class#Channel#0" expanded="false" />
+            <element signature="method#sendTransaction#3;class#Channel#0" expanded="false" />
+            <element signature="method#createTransactionEnvelope#0;class#Channel#0" expanded="false" />
+            <element signature="method#getChannelConfigurationSignature#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#registerBlockListener#0;class#Channel#0" expanded="false" />
+            <element signature="method#registerBlockListener#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;field#channelEventQue#0;class#Channel#0" expanded="false" />
+            <element signature="class#ChannelEventQue#0;class#Channel#0" expanded="false" />
+            <element signature="method#addBEvent#0;class#ChannelEventQue#0;class#Channel#0" expanded="false" />
+            <element signature="e#100292#100338#0" expanded="false" />
+            <element signature="method#getNextEvent#0;class#ChannelEventQue#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;field#eventQueueThread#0;class#Channel#0" expanded="false" />
+            <element signature="method#startEventQue#0;class#Channel#0" expanded="false" />
+            <element signature="e#101992#103659#0" expanded="false" />
+            <element signature="e#103663#103702#0" expanded="false" />
+            <element signature="class#BL#0;class#Channel#0" expanded="false" />
+            <element signature="method#BL#0;class#BL#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#registerTransactionListenerProcessor#0;class#Channel#0" expanded="false" />
+            <element signature="method#registerTransactionListenerProcessor#0;class#Channel#0" expanded="false" />
+            <element signature="e#105497#106809#0" expanded="false" />
+            <element signature="e#106232#106319#0" expanded="false" />
+            <element signature="class#TL#0;class#Channel#0" expanded="false" />
+            <element signature="e#107173#107244#0" expanded="false" />
+            <element signature="method#eventReceived#0;class#TL#0;class#Channel#0" expanded="false" />
+            <element signature="method#TL#0;class#TL#0;class#Channel#0" expanded="false" />
+            <element signature="e#107689#107729#0" expanded="false" />
+            <element signature="method#addListener#0;class#TL#0;class#Channel#0" expanded="false" />
+            <element signature="method#fire#0;class#TL#0;class#Channel#0" expanded="false" />
+            <element signature="e#109294#109357#0" expanded="false" />
+            <element signature="docComment;method#registerTxListener#0;class#Channel#0" expanded="false" />
+            <element signature="method#registerTxListener#0;class#Channel#0" expanded="false" />
+            <element signature="docComment;method#shutdown#0;class#Channel#0" expanded="false" />
+            <element signature="method#shutdown#0;class#Channel#0" expanded="false" />
+            <element signature="method#finalize#0;class#Channel#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/HFClient.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="185">
+          <caret line="53" column="34" lean-forward="false" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
+          <folding>
+            <element signature="e#2160#2161#0" expanded="true" />
+            <element signature="e#2198#2199#0" expanded="true" />
+            <element signature="docComment;method#newChannel#0;class#HFClient#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2424">
+          <caret line="595" column="27" lean-forward="false" selection-start-line="595" selection-start-column="27" selection-end-line="595" selection-end-column="27" />
+          <folding>
+            <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#checkConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#clearConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#setup#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#4696#4724#0" expanded="false" />
+            <element signature="e#4942#4988#0" expanded="false" />
+            <element signature="e#5460#5556#0" expanded="false" />
+            <element signature="e#6264#6292#0" expanded="false" />
+            <element signature="e#7935#7963#0" expanded="false" />
+            <element signature="e#8539#15668#0" expanded="false" />
+            <element signature="e#8744#8762#0" expanded="false" />
+            <element signature="e#9770#9798#0" expanded="false" />
+            <element signature="e#11347#11438#0" expanded="false" />
+            <element signature="e#11889#11907#0" expanded="false" />
+            <element signature="e#14602#14693#0" expanded="false" />
+            <element signature="e#15680#18343#0" expanded="false" />
+            <element signature="e#17416#17418#0" expanded="false" />
+            <element signature="e#18355#18560#0" expanded="false" />
+            <element signature="e#18576#19336#0" expanded="false" />
+            <element signature="method#moveAmount#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#19873#19888#0" expanded="false" />
+            <element signature="e#21157#21248#0" expanded="false" />
+            <element signature="e#22380#22408#0" expanded="false" />
+            <element signature="e#24916#25008#0" expanded="false" />
+            <element signature="method#queryChaincodeForExpectedValue#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#waitOnFabric#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#waitOnFabric#1;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#27552#27639#0" expanded="false" />
+            <element signature="method#checkInstantiatedChaincode#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#out#0;class#End2endAndBackAgainIT#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="203" column="77" lean-forward="false" selection-start-line="203" selection-start-column="77" selection-end-line="203" selection-end-column="77" />
+        <state relative-caret-position="138">
+          <caret line="236" column="31" lean-forward="true" selection-start-line="236" selection-start-column="31" selection-end-line="236" selection-end-column="31" />
           <folding>
             <element signature="docComment;class#End2endIT#0" expanded="false" />
             <element signature="method#checkConfig#0;class#End2endIT#0" expanded="false" />
             <element signature="method#clearConfig#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#4992#5020#0" expanded="false" />
-            <element signature="e#5234#5280#0" expanded="false" />
-            <element signature="e#5877#5912#0" expanded="false" />
-            <element signature="e#8873#8901#0" expanded="false" />
-            <element signature="e#10051#10117#0" expanded="false" />
+            <element signature="e#5089#5117#0" expanded="false" />
+            <element signature="e#5331#5377#0" expanded="false" />
+            <element signature="e#5974#6009#0" expanded="false" />
+            <element signature="e#7022#7096#0" expanded="false" />
+            <element signature="e#7346#7399#0" expanded="false" />
+            <element signature="e#8970#8998#0" expanded="false" />
+            <element signature="e#10168#10234#0" expanded="false" />
             <element signature="method#transfer#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#11331#11460#0" expanded="false" />
-            <element signature="e#11718#11733#0" expanded="false" />
-            <element signature="e#13389#13480#0" expanded="false" />
-            <element signature="e#15695#15723#0" expanded="false" />
-            <element signature="e#16298#16312#0" expanded="false" />
+            <element signature="e#11448#11577#0" expanded="false" />
+            <element signature="e#11835#11850#0" expanded="false" />
+            <element signature="e#13506#13597#0" expanded="false" />
+            <element signature="e#15812#15840#0" expanded="false" />
+            <element signature="e#16415#16429#0" expanded="false" />
             <element signature="method#query#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#16693#16779#0" expanded="false" />
+            <element signature="e#16810#16896#0" expanded="false" />
             <element signature="method#runChannel#0;class#End2endIT#0" expanded="false" />
-            <element signature="e#26857#26872#0" expanded="false" />
-            <element signature="e#27123#32360#0" expanded="false" />
-            <marker date="1501659944972" expanded="false" signature="20990:21081" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="21423:21585" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="22279:22399" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="22460:22563" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="23776:24111" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="27578:27656" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="29319:29479" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="31758:31849" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="32392:35045" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="32779:32886" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="35066:35581" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="35656:35888" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="35955:36082" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="38731:38802" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="39163:39339" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="42134:42306" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="42354:42922" ph="{}" />
-            <marker date="1501659944972" expanded="false" signature="42364:42916" ph="//..." />
-            <marker date="1501659944972" expanded="false" signature="42994:43202" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="43306:52534" ph="{...}" />
-            <marker date="1501659944972" expanded="false" signature="52591:52939" ph="{...}" />
+            <element signature="e#26974#26989#0" expanded="false" />
+            <element signature="e#27240#32477#0" expanded="false" />
+            <element signature="e#40844#40936#0" expanded="false" />
+            <element signature="method#constructChannel#0;class#End2endIT#0" expanded="false" />
+            <marker date="1501663158234" expanded="false" signature="21107:21198" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="21540:21702" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="22396:22516" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="22577:22680" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="23893:24228" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="27695:27773" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="29436:29596" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="31875:31966" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="32509:35162" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="32896:33003" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="35183:35698" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="35773:36005" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="36072:36199" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="41881:41952" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="42313:42489" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="45284:45456" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="45504:46072" ph="{}" />
+            <marker date="1501663158234" expanded="false" signature="45514:46066" ph="//..." />
+            <marker date="1501663158234" expanded="false" signature="46144:46352" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="46456:55684" ph="{...}" />
+            <marker date="1501663158234" expanded="false" signature="55741:56089" ph="{...}" />
           </folding>
         </state>
       </provider>
