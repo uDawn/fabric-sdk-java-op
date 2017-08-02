@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="c00c51ec-5b45-4da9-8d4e-e58f207f23a2" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java" afterPath="$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -15,7 +14,7 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="End2endIT.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="End2endIT.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="-457">
@@ -247,10 +246,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="End2endAndBackAgainIT.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="End2endAndBackAgainIT.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="310">
+            <state relative-caret-position="3610">
               <caret line="560" column="77" lean-forward="false" selection-start-line="560" selection-start-column="54" selection-end-line="560" selection-end-column="77" />
               <folding>
                 <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
@@ -632,11 +631,19 @@
       <option name="project" value="LOCAL" />
       <updated>1501663197346</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="modify End2endIT.java">
+      <created>1501663335205</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1501663335205</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1376" height="744" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -645,7 +652,7 @@
       <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3295082" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3295082" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -1131,44 +1138,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="310">
-          <caret line="560" column="77" lean-forward="false" selection-start-line="560" selection-start-column="54" selection-end-line="560" selection-end-column="77" />
-          <folding>
-            <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#checkConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#clearConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#setup#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="e#4696#4724#0" expanded="false" />
-            <element signature="e#4942#4988#0" expanded="false" />
-            <element signature="e#5460#5556#0" expanded="false" />
-            <element signature="e#6264#6292#0" expanded="false" />
-            <element signature="e#7935#7963#0" expanded="false" />
-            <element signature="e#8539#15668#0" expanded="false" />
-            <element signature="e#8744#8762#0" expanded="false" />
-            <element signature="e#9770#9798#0" expanded="false" />
-            <element signature="e#11347#11438#0" expanded="false" />
-            <element signature="e#11889#11907#0" expanded="false" />
-            <element signature="e#14602#14693#0" expanded="false" />
-            <element signature="e#15680#18343#0" expanded="false" />
-            <element signature="e#17416#17418#0" expanded="false" />
-            <element signature="e#18355#18560#0" expanded="false" />
-            <element signature="e#18576#19336#0" expanded="false" />
-            <element signature="method#moveAmount#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="e#19873#19888#0" expanded="false" />
-            <element signature="e#21157#21248#0" expanded="false" />
-            <element signature="e#22380#22408#0" expanded="false" />
-            <element signature="e#24916#25008#0" expanded="false" />
-            <element signature="method#waitOnFabric#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#waitOnFabric#1;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="e#27552#27639#0" expanded="false" />
-            <element signature="method#checkInstantiatedChaincode#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#out#0;class#End2endAndBackAgainIT#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-457">
@@ -1217,6 +1186,44 @@
             <marker date="1501663319373" expanded="false" signature="46148:46356" ph="{...}" />
             <marker date="1501663319373" expanded="false" signature="46460:55688" ph="{...}" />
             <marker date="1501663319373" expanded="false" signature="55745:56093" ph="{...}" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3610">
+          <caret line="560" column="77" lean-forward="false" selection-start-line="560" selection-start-column="54" selection-end-line="560" selection-end-column="77" />
+          <folding>
+            <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#checkConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#clearConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#setup#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#4696#4724#0" expanded="false" />
+            <element signature="e#4942#4988#0" expanded="false" />
+            <element signature="e#5460#5556#0" expanded="false" />
+            <element signature="e#6264#6292#0" expanded="false" />
+            <element signature="e#7935#7963#0" expanded="false" />
+            <element signature="e#8539#15668#0" expanded="false" />
+            <element signature="e#8744#8762#0" expanded="false" />
+            <element signature="e#9770#9798#0" expanded="false" />
+            <element signature="e#11347#11438#0" expanded="false" />
+            <element signature="e#11889#11907#0" expanded="false" />
+            <element signature="e#14602#14693#0" expanded="false" />
+            <element signature="e#15680#18343#0" expanded="false" />
+            <element signature="e#17416#17418#0" expanded="false" />
+            <element signature="e#18355#18560#0" expanded="false" />
+            <element signature="e#18576#19336#0" expanded="false" />
+            <element signature="method#moveAmount#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#19873#19888#0" expanded="false" />
+            <element signature="e#21157#21248#0" expanded="false" />
+            <element signature="e#22380#22408#0" expanded="false" />
+            <element signature="e#24916#25008#0" expanded="false" />
+            <element signature="method#waitOnFabric#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#waitOnFabric#1;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#27552#27639#0" expanded="false" />
+            <element signature="method#checkInstantiatedChaincode#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#out#0;class#End2endAndBackAgainIT#0" expanded="false" />
           </folding>
         </state>
       </provider>
