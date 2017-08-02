@@ -366,7 +366,7 @@ public class End2endIT {
                 String expect = "" + (300);
                 out("Now query chaincode for the value of b.");
                 QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-                queryByChaincodeRequest.setArgs(new String[]{"query", "b"});
+                queryByChaincodeRequest.setArgs(new String[]{"query", account});
                 queryByChaincodeRequest.setFcn("invoke");
                 queryByChaincodeRequest.setChaincodeID(chaincodeID);
 
