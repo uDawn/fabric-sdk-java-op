@@ -15,6 +15,7 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
@@ -78,14 +79,14 @@ public class End2endIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
     private static final String ADMIN_NAME = "admin";
-    private static final String USER_1_NAME = "user1";
+    private static final String USER_1_NAME = "user2";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String CHAIN_CODE_NAME = "mycc_yl";
     private static final String CHAIN_CODE_PATH = "github.com/example_cc";
     private static final String CHAIN_CODE_VERSION = "1";
 
-    private static final String CHANNEL_NAME = "foo";
+    private static final String CHANNEL_NAME = "mychannel";
     //private static final String BAR_CHANNEL_NAME = "bar";
 
     String testTxID = null;  // save the CC invoke TxID and use in queries
@@ -168,10 +169,13 @@ public class End2endIT {
                 sampleOrg.setAdmin(admin); // The admin of this org --
 
                 SampleUser user = sampleStore.getMember(USER_1_NAME, sampleOrg.getName());
-                /*if (!user.isRegistered()) {  // users need to be registered AND enrolled
+                if (!user.isRegistered()) {  // users need to be registered AND enrolled
                     RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
                     user.setEnrollmentSecret(ca.register(rr, admin));
-                }*/
+                    File secret = new File("src/test/java/secrete/secret.txt");
+                    FileOutputStream write_secret = new FileOutputStream(secret,false);
+                    write_secret.write(ca.register(rr, admin).getBytes());
+                }
                 if (!user.isEnrolled()) {
                     user.setEnrollment(ca.enroll(user.getName(), user.getEnrollmentSecret()));
                     user.setMspId(mspid);
