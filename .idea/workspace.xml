@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c00c51ec-5b45-4da9-8d4e-e58f207f23a2" name="Default" comment="">
+    <list default="true" id="c00c51ec-5b45-4da9-8d4e-e58f207f23a2" name="Default" comment=":：">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java" afterPath="$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java" />
     </list>
@@ -18,8 +18,8 @@
       <file leaf-file-name="End2endIT.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="118">
-              <caret line="205" column="52" lean-forward="false" selection-start-line="205" selection-start-column="52" selection-end-line="205" selection-end-column="52" />
+            <state relative-caret-position="343">
+              <caret line="766" column="14" lean-forward="false" selection-start-line="766" selection-start-column="14" selection-end-line="766" selection-end-column="14" />
               <folding>
                 <element signature="docComment;class#End2endIT#0" expanded="false" />
                 <element signature="method#checkConfig#0;class#End2endIT#0" expanded="false" />
@@ -41,29 +41,29 @@
                 <element signature="method#runChannel#0;class#End2endIT#0" expanded="false" />
                 <element signature="e#27036#27051#0" expanded="false" />
                 <element signature="e#27302#32539#0" expanded="false" />
-                <element signature="e#40906#40998#0" expanded="false" />
+                <element signature="e#40914#41006#0" expanded="false" />
                 <element signature="method#constructChannel#0;class#End2endIT#0" expanded="false" />
-                <marker date="1501663902557" expanded="false" signature="21169:21260" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="21602:21764" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="22458:22578" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="22639:22742" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="23955:24290" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="27757:27835" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="29498:29658" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="31937:32028" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="32571:35224" ph="{...}" />
-                <marker date="1501663902557" expanded="false" signature="32958:33065" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="35245:35760" ph="{...}" />
-                <marker date="1501663902557" expanded="false" signature="35835:36067" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="36134:36261" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="41943:42014" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="42375:42551" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="45346:45518" ph="{...}" />
-                <marker date="1501663902557" expanded="false" signature="45566:46134" ph="{}" />
-                <marker date="1501663902557" expanded="false" signature="45576:46128" ph="//..." />
-                <marker date="1501663902557" expanded="false" signature="46206:46414" ph="{...}" />
-                <marker date="1501663902557" expanded="false" signature="46518:55746" ph="{...}" />
-                <marker date="1501663902557" expanded="false" signature="55803:56151" ph="{...}" />
+                <marker date="1501665268915" expanded="false" signature="21169:21260" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="21602:21764" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="22458:22578" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="22639:22742" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="23955:24290" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="27757:27835" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="29498:29658" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="31937:32028" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="32571:35224" ph="{...}" />
+                <marker date="1501665268915" expanded="false" signature="32958:33065" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="35245:35760" ph="{...}" />
+                <marker date="1501665268915" expanded="false" signature="35835:36067" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="36134:36261" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="41951:42022" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="42383:42559" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="45354:45526" ph="{...}" />
+                <marker date="1501665268915" expanded="false" signature="45574:46142" ph="{}" />
+                <marker date="1501665268915" expanded="false" signature="45584:46136" ph="//..." />
+                <marker date="1501665268915" expanded="false" signature="46214:46422" ph="{...}" />
+                <marker date="1501665268915" expanded="false" signature="46526:55754" ph="{...}" />
+                <marker date="1501665268915" expanded="false" signature="55811:56159" ph="{...}" />
               </folding>
             </state>
           </provider>
@@ -72,8 +72,8 @@
       <file leaf-file-name="HFClient.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/HFClient.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="185">
-              <caret line="53" column="34" lean-forward="false" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
+            <state relative-caret-position="193">
+              <caret line="392" column="39" lean-forward="false" selection-start-line="392" selection-start-column="39" selection-end-line="392" selection-end-column="39" />
               <folding>
                 <element signature="e#2160#2161#0" expanded="true" />
                 <element signature="e#2198#2199#0" expanded="true" />
@@ -86,8 +86,8 @@
       <file leaf-file-name="Channel.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/Channel.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="410">
-              <caret line="445" column="46" lean-forward="true" selection-start-line="445" selection-start-column="46" selection-end-line="445" selection-end-column="46" />
+            <state relative-caret-position="93">
+              <caret line="2167" column="151" lean-forward="true" selection-start-line="2167" selection-start-column="151" selection-end-line="2167" selection-end-column="151" />
               <folding>
                 <element signature="docComment;class#Channel#0" expanded="false" />
                 <element signature="e#7047#7113#0" expanded="false" />
@@ -185,7 +185,6 @@
                 <element signature="method#queryTransactionByID#0;class#Channel#0" expanded="false" />
                 <element signature="docComment;method#queryTransactionByID#1;class#Channel#0" expanded="false" />
                 <element signature="method#queryTransactionByID#1;class#Channel#0" expanded="false" />
-                <element signature="method#queryChannels#0;class#Channel#0" expanded="false" />
                 <element signature="method#queryInstalledChaincodes#0;class#Channel#0" expanded="false" />
                 <element signature="docComment;method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
                 <element signature="method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
@@ -198,7 +197,6 @@
                 <element signature="docComment;method#queryByChaincode#1;class#Channel#0" expanded="false" />
                 <element signature="method#queryByChaincode#1;class#Channel#0" expanded="false" />
                 <element signature="method#sendProposal#0;class#Channel#0" expanded="false" />
-                <element signature="method#sendProposalToPeers#0;class#Channel#0" expanded="false" />
                 <element signature="class#86426:86748" expanded="false" />
                 <element signature="method#Pair#0;class#86426:86748" expanded="false" />
                 <element signature="e#90945#91002#0" expanded="false" />
@@ -653,12 +651,18 @@
       <option name="project" value="LOCAL" />
       <updated>1501663647583</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="modify End2endIT.java">
+      <created>1501663910397</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1501663910397</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1376" height="744" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -667,7 +671,7 @@
       <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3295082" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3295082" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -755,29 +759,29 @@
             <element signature="method#runChannel#0;class#End2endIT#0" expanded="false" />
             <element signature="e#27036#27051#0" expanded="false" />
             <element signature="e#27302#32539#0" expanded="false" />
-            <element signature="e#40906#40998#0" expanded="false" />
+            <element signature="e#40914#41006#0" expanded="false" />
             <element signature="method#constructChannel#0;class#End2endIT#0" expanded="false" />
-            <marker date="1501663902557" expanded="false" signature="21169:21260" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="21602:21764" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="22458:22578" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="22639:22742" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="23955:24290" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="27757:27835" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="29498:29658" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="31937:32028" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="32571:35224" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="32958:33065" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="35245:35760" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="35835:36067" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="36134:36261" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="41943:42014" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="42375:42551" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="45346:45518" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="45566:46134" ph="{}" />
-            <marker date="1501663902557" expanded="false" signature="45576:46128" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="46206:46414" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="46518:55746" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="55803:56151" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="21169:21260" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="21602:21764" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="22458:22578" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="22639:22742" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="23955:24290" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="27757:27835" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="29498:29658" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="31937:32028" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="32571:35224" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="32958:33065" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="35245:35760" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="35835:36067" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="36134:36261" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="41951:42022" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="42383:42559" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="45354:45526" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="45574:46142" ph="{}" />
+            <marker date="1501665268915" expanded="false" signature="45584:46136" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="46214:46422" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="46526:55754" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="55811:56159" ph="{...}" />
           </folding>
         </state>
       </provider>
@@ -979,10 +983,60 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="260">
+          <caret line="190" column="31" lean-forward="false" selection-start-line="190" selection-start-column="25" selection-end-line="190" selection-end-column="31" />
+          <folding>
+            <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#checkConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#clearConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#setup#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#4696#4724#0" expanded="false" />
+            <element signature="e#4942#4988#0" expanded="false" />
+            <element signature="e#5460#5556#0" expanded="false" />
+            <element signature="e#6264#6292#0" expanded="false" />
+            <element signature="e#7935#7963#0" expanded="false" />
+            <element signature="e#8539#15668#0" expanded="false" />
+            <element signature="e#8744#8762#0" expanded="false" />
+            <element signature="e#9770#9798#0" expanded="false" />
+            <element signature="e#11347#11438#0" expanded="false" />
+            <element signature="e#11889#11907#0" expanded="false" />
+            <element signature="e#14602#14693#0" expanded="false" />
+            <element signature="e#15680#18343#0" expanded="false" />
+            <element signature="e#17416#17418#0" expanded="false" />
+            <element signature="e#18355#18560#0" expanded="false" />
+            <element signature="e#18576#19336#0" expanded="false" />
+            <element signature="method#moveAmount#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#19873#19888#0" expanded="false" />
+            <element signature="e#21157#21248#0" expanded="false" />
+            <element signature="e#22380#22408#0" expanded="false" />
+            <element signature="e#24916#25008#0" expanded="false" />
+            <element signature="method#waitOnFabric#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#waitOnFabric#1;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="e#27552#27639#0" expanded="false" />
+            <element signature="method#checkInstantiatedChaincode#0;class#End2endAndBackAgainIT#0" expanded="false" />
+            <element signature="method#out#0;class#End2endAndBackAgainIT#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/HFClient.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="193">
+          <caret line="392" column="39" lean-forward="false" selection-start-line="392" selection-start-column="39" selection-end-line="392" selection-end-column="39" />
+          <folding>
+            <element signature="e#2160#2161#0" expanded="true" />
+            <element signature="e#2198#2199#0" expanded="true" />
+            <element signature="docComment;method#newChannel#0;class#HFClient#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/Channel.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="410">
-          <caret line="445" column="46" lean-forward="true" selection-start-line="445" selection-start-column="46" selection-end-line="445" selection-end-column="46" />
+        <state relative-caret-position="93">
+          <caret line="2167" column="151" lean-forward="true" selection-start-line="2167" selection-start-column="151" selection-end-line="2167" selection-end-column="151" />
           <folding>
             <element signature="docComment;class#Channel#0" expanded="false" />
             <element signature="e#7047#7113#0" expanded="false" />
@@ -1080,7 +1134,6 @@
             <element signature="method#queryTransactionByID#0;class#Channel#0" expanded="false" />
             <element signature="docComment;method#queryTransactionByID#1;class#Channel#0" expanded="false" />
             <element signature="method#queryTransactionByID#1;class#Channel#0" expanded="false" />
-            <element signature="method#queryChannels#0;class#Channel#0" expanded="false" />
             <element signature="method#queryInstalledChaincodes#0;class#Channel#0" expanded="false" />
             <element signature="docComment;method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
             <element signature="method#queryInstantiatedChaincodes#0;class#Channel#0" expanded="false" />
@@ -1093,7 +1146,6 @@
             <element signature="docComment;method#queryByChaincode#1;class#Channel#0" expanded="false" />
             <element signature="method#queryByChaincode#1;class#Channel#0" expanded="false" />
             <element signature="method#sendProposal#0;class#Channel#0" expanded="false" />
-            <element signature="method#sendProposalToPeers#0;class#Channel#0" expanded="false" />
             <element signature="class#86426:86748" expanded="false" />
             <element signature="method#Pair#0;class#86426:86748" expanded="false" />
             <element signature="e#90945#91002#0" expanded="false" />
@@ -1141,60 +1193,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/hyperledger/fabric/sdk/HFClient.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="185">
-          <caret line="53" column="34" lean-forward="false" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
-          <folding>
-            <element signature="e#2160#2161#0" expanded="true" />
-            <element signature="e#2198#2199#0" expanded="true" />
-            <element signature="docComment;method#newChannel#0;class#HFClient#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="260">
-          <caret line="190" column="31" lean-forward="false" selection-start-line="190" selection-start-column="25" selection-end-line="190" selection-end-column="31" />
-          <folding>
-            <element signature="docComment;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#checkConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#clearConfig#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#setup#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="e#4696#4724#0" expanded="false" />
-            <element signature="e#4942#4988#0" expanded="false" />
-            <element signature="e#5460#5556#0" expanded="false" />
-            <element signature="e#6264#6292#0" expanded="false" />
-            <element signature="e#7935#7963#0" expanded="false" />
-            <element signature="e#8539#15668#0" expanded="false" />
-            <element signature="e#8744#8762#0" expanded="false" />
-            <element signature="e#9770#9798#0" expanded="false" />
-            <element signature="e#11347#11438#0" expanded="false" />
-            <element signature="e#11889#11907#0" expanded="false" />
-            <element signature="e#14602#14693#0" expanded="false" />
-            <element signature="e#15680#18343#0" expanded="false" />
-            <element signature="e#17416#17418#0" expanded="false" />
-            <element signature="e#18355#18560#0" expanded="false" />
-            <element signature="e#18576#19336#0" expanded="false" />
-            <element signature="method#moveAmount#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="e#19873#19888#0" expanded="false" />
-            <element signature="e#21157#21248#0" expanded="false" />
-            <element signature="e#22380#22408#0" expanded="false" />
-            <element signature="e#24916#25008#0" expanded="false" />
-            <element signature="method#waitOnFabric#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#waitOnFabric#1;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="e#27552#27639#0" expanded="false" />
-            <element signature="method#checkInstantiatedChaincode#0;class#End2endAndBackAgainIT#0" expanded="false" />
-            <element signature="method#out#0;class#End2endAndBackAgainIT#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="118">
-          <caret line="205" column="52" lean-forward="false" selection-start-line="205" selection-start-column="52" selection-end-line="205" selection-end-column="52" />
+        <state relative-caret-position="343">
+          <caret line="766" column="14" lean-forward="false" selection-start-line="766" selection-start-column="14" selection-end-line="766" selection-end-column="14" />
           <folding>
             <element signature="docComment;class#End2endIT#0" expanded="false" />
             <element signature="method#checkConfig#0;class#End2endIT#0" expanded="false" />
@@ -1216,29 +1218,29 @@
             <element signature="method#runChannel#0;class#End2endIT#0" expanded="false" />
             <element signature="e#27036#27051#0" expanded="false" />
             <element signature="e#27302#32539#0" expanded="false" />
-            <element signature="e#40906#40998#0" expanded="false" />
+            <element signature="e#40914#41006#0" expanded="false" />
             <element signature="method#constructChannel#0;class#End2endIT#0" expanded="false" />
-            <marker date="1501663902557" expanded="false" signature="21169:21260" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="21602:21764" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="22458:22578" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="22639:22742" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="23955:24290" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="27757:27835" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="29498:29658" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="31937:32028" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="32571:35224" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="32958:33065" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="35245:35760" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="35835:36067" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="36134:36261" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="41943:42014" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="42375:42551" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="45346:45518" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="45566:46134" ph="{}" />
-            <marker date="1501663902557" expanded="false" signature="45576:46128" ph="//..." />
-            <marker date="1501663902557" expanded="false" signature="46206:46414" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="46518:55746" ph="{...}" />
-            <marker date="1501663902557" expanded="false" signature="55803:56151" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="21169:21260" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="21602:21764" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="22458:22578" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="22639:22742" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="23955:24290" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="27757:27835" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="29498:29658" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="31937:32028" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="32571:35224" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="32958:33065" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="35245:35760" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="35835:36067" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="36134:36261" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="41951:42022" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="42383:42559" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="45354:45526" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="45574:46142" ph="{}" />
+            <marker date="1501665268915" expanded="false" signature="45584:46136" ph="//..." />
+            <marker date="1501665268915" expanded="false" signature="46214:46422" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="46526:55754" ph="{...}" />
+            <marker date="1501665268915" expanded="false" signature="55811:56159" ph="{...}" />
           </folding>
         </state>
       </provider>
